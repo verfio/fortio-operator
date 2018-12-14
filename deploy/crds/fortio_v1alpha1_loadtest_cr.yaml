@@ -1,0 +1,7 @@
+apiVersion: fortio.verf.io/v1alpha1
+kind: LoadTest
+metadata:
+  name: example-loadtest
+spec:
+  # Add fields here
+  size: 3

@@ -205,7 +205,7 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 							Command: []string{"fortio", "curl", "-t", cr.Spec.Duration, cr.Spec.Url},
 						},
 					},
-					RestartPolicy: "never",
+					RestartPolicy: "Never",
 				},
 			},
 			BackoffLimit: &backoffLimit,

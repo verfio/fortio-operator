@@ -6,3 +6,4 @@ spec:
   # Add fields here
   #  size: 3
   duration: 10m
+  url: "https://tcgua.com"

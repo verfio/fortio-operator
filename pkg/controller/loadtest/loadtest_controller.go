@@ -87,6 +87,8 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// Fetch the LoadTest instance
 	instance := &fortiov1alpha1.LoadTest{}
+
+
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -98,6 +100,9 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+
+	//Fetch the Duration field out of the current LoadTest instance
+	log.Info("Fetching the duration", "Duration: ", instance.Spec.Duration)
 
 	// Define a new Pod object
 	pod := newPodForCR(instance)

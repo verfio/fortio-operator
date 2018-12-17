@@ -9,6 +9,7 @@ import (
 
 // LoadTestSpec defines the desired state of LoadTest
 type LoadTestSpec struct {
+	Url      string `json:"url"`
 	Duration string `json:"duration"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file

@@ -145,12 +145,12 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	// Job already exists - don't requeue
 	reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	reqLogger.Info("Verify if it completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
-	if job.Status.Succeeded == 1 { // verify that there is one succeeded pod
-		for _, c := range job.Status.Conditions {
+	if found.Status.Succeeded == 1 { // verify that there is one succeeded pod
+		for _, c := range found.Status.Conditions {
 			if c.Type == "Complete" && c.Status == "True" {
 				reqLogger.Info("Job competed. Fetch for pod", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 				podList := &corev1.PodList{}
-				labelSelector := labels.SelectorFromSet(labelsForJob(job.Name))
+				labelSelector := labels.SelectorFromSet(labelsForJob(found.Name))
 				listOps := &client.ListOptions{
 					Namespace:     instance.Namespace,
 					LabelSelector: labelSelector,

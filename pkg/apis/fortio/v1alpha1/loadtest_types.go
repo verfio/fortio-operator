@@ -11,6 +11,12 @@ import (
 type LoadTestSpec struct {
 	Url      string `json:"url"`
 	Duration string `json:"duration"`
+	Header	 string `json:"header"`
+	User	 string `json:"user"`
+	Password string `json:"password"`
+	Qps	 string `json:"qps"`
+	Threads  string `json:"threads"`
+	
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }

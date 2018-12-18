@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -89,6 +90,16 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	// Fetch the LoadTest instance
 	instance := &fortiov1alpha1.LoadTest{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			return reconcile.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, err
+	}
 
 	//Attempt to update the status field of our instance
 
@@ -106,20 +117,6 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	// Attempt is finished
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
-			return reconcile.Result{}, nil
-		}
-		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
-	}
-
-	//Fetch the Duration field out of the current LoadTest instance
-	log.Info("Fetching the duration", "Duration: ", instance.Spec.Duration)
 
 	// Define a new Job object
 	job := newJobForCR(instance)
@@ -146,7 +143,29 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	// Job already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	reqLogger.Info("Verify if it completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	if job.Status.Succeeded == 1 { // verify that there is one succeeded pod
+		for _, c := range job.Status.Conditions {
+			if c.Type == "Complete" && c.Status == "True" {
+				reqLogger.Info("Job competed. Fetch for pod", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+				podList := &corev1.PodList{}
+				labelSelector := labels.SelectorFromSet(labelsForJob(job.Name))
+				listOps := &client.ListOptions{
+					Namespace:     instance.Namespace,
+					LabelSelector: labelSelector,
+				}
+				err = r.client.List(context.TODO(), listOps, podList)
+				if err != nil {
+					reqLogger.Error(err, "Failed to list pods.", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+					return reconcile.Result{}, err
+				}
+				for _, pod := range podList.Items {
+					reqLogger.Info("Found pod name:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+				}
+			}
+		}
+	}
 	return reconcile.Result{}, nil
 }
 
@@ -177,4 +196,8 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 			BackoffLimit: &backoffLimit,
 		},
 	}
+}
+
+func labelsForJob(name string) map[string]string {
+	return map[string]string{"controller-uid": name}
 }

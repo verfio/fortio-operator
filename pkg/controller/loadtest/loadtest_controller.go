@@ -199,5 +199,6 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 }
 
 func labelsForJob(name string) map[string]string {
-	return map[string]string{"controller-uid": name}
+	//return map[string]string{"controller-uid": name}
+	return map[string]string{"job-name": name}
 }

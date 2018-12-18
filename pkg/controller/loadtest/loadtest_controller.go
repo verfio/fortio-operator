@@ -88,8 +88,25 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// Fetch the LoadTest instance
 	instance := &fortiov1alpha1.LoadTest{}
-
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+
+	//Attempt to update the status field of our instance
+
+	condition := &fortiov1alpha1.LoadTestCondition{
+		"0.112",
+		"0.2123",
+		"0.5133",
+		"0.912",
+		"2.991",
+	}
+
+	if len(instance.Status.Condition) < 1 {
+		instance.Status.Condition = append(instance.Status.Condition, *condition)
+		err = r.client.Update(context.TODO(), instance)
+	}
+
+	// Attempt is finished
+
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

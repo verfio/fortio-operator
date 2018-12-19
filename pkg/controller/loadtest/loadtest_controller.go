@@ -219,8 +219,7 @@ func getPodLogs(pod corev1.Pod) string {
 	if err != nil {
 		return "error in getting access to K8S"
 	}
-	pods := clientset.CoreV1().Pods(pod.Namespace)
-	req := pods.GetLogs(pod.Name, &podLogOpts)
+	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
 	readCloser, err := req.Stream()
 	if err != nil {
 		return "error in reading logs"

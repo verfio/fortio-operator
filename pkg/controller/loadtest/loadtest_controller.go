@@ -213,8 +213,7 @@ func labelsForJob(name string) map[string]string {
 }
 
 func getPodLogs(pod corev1.Pod) string {
-	sinceSeconds := int64(360)
-	podLogOpts := corev1.PodLogOptions{SinceSeconds: &sinceSeconds}
+	podLogOpts := corev1.PodLogOptions{}
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return "error in getting config"

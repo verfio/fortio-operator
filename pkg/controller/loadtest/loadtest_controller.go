@@ -167,11 +167,16 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 					reqLogger.Info("Found pod name:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 					reqLogger.Info("Readings logs from pod:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 					logs := getPodLogs(pod)
-					reqLogger.Info(logs, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+					if logs == "" {
+						reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+					} else {
+						reqLogger.Info(logs, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+					}
 				}
 			}
 		}
 	}
+	reqLogger.Info("Go to reconcile loop", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	return reconcile.Result{}, nil
 }
 
@@ -209,7 +214,7 @@ func labelsForJob(name string) map[string]string {
 }
 
 func getPodLogs(pod corev1.Pod) string {
-	podLogOpts := corev1.PodLogOptions{Follow: true}
+	podLogOpts := corev1.PodLogOptions{}
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return "error in getting config"

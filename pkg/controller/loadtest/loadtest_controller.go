@@ -162,6 +162,7 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 				}
 				for _, pod := range podList.Items {
 					reqLogger.Info("Found pod name:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+					reqLogger.Info("Readings logs from pod:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 				}
 			}
 		}
@@ -199,6 +200,5 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 }
 
 func labelsForJob(name string) map[string]string {
-	//return map[string]string{"controller-uid": name}
 	return map[string]string{"job-name": name}
 }

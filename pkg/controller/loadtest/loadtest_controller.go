@@ -222,7 +222,7 @@ func getPodLogs(pod corev1.Pod) string {
 	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
 	readCloser, err := req.Stream()
 	if err != nil {
-		return "error in reading logs"
+		return "error in reading logs" + req.URL().String()
 	}
 	defer readCloser.Close()
 	var out []byte

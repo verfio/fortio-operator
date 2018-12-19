@@ -2,6 +2,7 @@ package loadtest
 
 import (
 	"context"
+	"io"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -11,6 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -162,6 +165,8 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 				}
 				for _, pod := range podList.Items {
 					reqLogger.Info("Found pod name:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+					logs := getPodLogs(pod)
+					reqLogger.Info(logs, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 				}
 			}
 		}
@@ -201,4 +206,31 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 func labelsForJob(name string) map[string]string {
 	//return map[string]string{"controller-uid": name}
 	return map[string]string{"job-name": name}
+}
+
+func getPodLogs(pod corev1.Pod) string {
+	podLogOpts := corev1.PodLogOptions{}
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+	pods := clientset.CoreV1().Pods(pod.Namespace)
+	req := pods.GetLogs(pod.Name, &podLogOpts)
+	readCloser, err := req.Stream()
+	if err != nil {
+		//return nil
+	}
+	defer readCloser.Close()
+	var out []byte
+	_, err = io.ReadFull(readCloser, out)
+	if err != nil {
+		//return nil
+	}
+	str := string(out)
+	return str
 }

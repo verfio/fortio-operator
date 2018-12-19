@@ -2,7 +2,6 @@ package loadtest
 
 import (
 	"context"
-	"io"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -214,7 +213,8 @@ func labelsForJob(name string) map[string]string {
 }
 
 func getPodLogs(pod corev1.Pod) string {
-	podLogOpts := corev1.PodLogOptions{}
+	sinceSeconds := int64(360)
+	podLogOpts := corev1.PodLogOptions{SinceSeconds: &sinceSeconds}
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return "error in getting config"
@@ -227,13 +227,13 @@ func getPodLogs(pod corev1.Pod) string {
 	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
 	readCloser, err := req.Stream()
 	if err != nil {
-		return "error in reading logs" + req.URL().String()
+		return "error in opening stream" + req.URL().String()
 	}
 	defer readCloser.Close()
 	var out []byte
-	_, err = io.ReadFull(readCloser, out)
+	_, err = readCloser.Read(out)
 	if err != nil {
-		return "error in copying logs from reader to str"
+		return "error in reading from the stream"
 	}
 	str := string(out)
 	return str

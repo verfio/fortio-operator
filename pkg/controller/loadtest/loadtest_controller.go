@@ -3,6 +3,9 @@ package loadtest
 import (
 	"context"
 
+	"bytes"
+	"io"
+
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,8 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"bytes"
-	"io"
 )
 
 var log = logf.Log.WithName("controller_loadtest")
@@ -234,14 +235,10 @@ func getPodLogs(pod corev1.Pod) string {
 
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, podLogs)
-	
+	if err != nil {
+		return "error in copy information from podLogs to buf"
+	}
 	str := buf.String()
 
-//	var out []byte
-//	_, err = readCloser.Read(out)
-//	if err != nil && err.Error() != "EOF" {
-//		return "error in reading from the stream" + err.Error()
-//	}
-//	str := string(out)
 	return str
 }

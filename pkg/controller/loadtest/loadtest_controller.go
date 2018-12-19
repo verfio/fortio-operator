@@ -233,7 +233,7 @@ func getPodLogs(pod corev1.Pod) string {
 	var out []byte
 	_, err = readCloser.Read(out)
 	if err != nil {
-		return "error in reading from the stream"
+		return "error in reading from the stream" + err.Error()
 	}
 	str := string(out)
 	return str

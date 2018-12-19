@@ -21,6 +21,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"bytes"
+	"io"
 )
 
 var log = logf.Log.WithName("controller_loadtest")
@@ -224,16 +226,22 @@ func getPodLogs(pod corev1.Pod) string {
 		return "error in getting access to K8S"
 	}
 	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
-	readCloser, err := req.Stream()
+	podLogs, err := req.Stream()
 	if err != nil {
 		return "error in opening stream" + req.URL().String()
 	}
-	defer readCloser.Close()
-	var out []byte
-	_, err = readCloser.Read(out)
-	if err != nil && err.Error() != "EOF" {
-		return "error in reading from the stream" + err.Error()
-	}
-	str := string(out)
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	
+	str := buf.String()
+
+//	var out []byte
+//	_, err = readCloser.Read(out)
+//	if err != nil && err.Error() != "EOF" {
+//		return "error in reading from the stream" + err.Error()
+//	}
+//	str := string(out)
 	return str
 }

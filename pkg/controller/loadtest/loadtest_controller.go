@@ -209,7 +209,7 @@ func labelsForJob(name string) map[string]string {
 }
 
 func getPodLogs(pod corev1.Pod) string {
-	podLogOpts := corev1.PodLogOptions{}
+	podLogOpts := corev1.PodLogOptions{Follow: true}
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return "error in getting config"

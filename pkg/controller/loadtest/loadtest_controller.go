@@ -212,24 +212,24 @@ func getPodLogs(pod corev1.Pod) string {
 	podLogOpts := corev1.PodLogOptions{}
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		panic(err.Error())
+		return "error in getting config"
 	}
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return "error in getting access to K8S"
 	}
 	pods := clientset.CoreV1().Pods(pod.Namespace)
 	req := pods.GetLogs(pod.Name, &podLogOpts)
 	readCloser, err := req.Stream()
 	if err != nil {
-		//return nil
+		return "error in reading logs"
 	}
 	defer readCloser.Close()
 	var out []byte
 	_, err = io.ReadFull(readCloser, out)
 	if err != nil {
-		//return nil
+		return "error in copying logs from reader to str"
 	}
 	str := string(out)
 	return str

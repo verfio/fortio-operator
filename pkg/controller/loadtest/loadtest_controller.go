@@ -2,6 +2,7 @@ package loadtest
 
 import (
 	"context"
+	"strings"
 
 	"bytes"
 	"io"
@@ -172,7 +173,12 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 					if logs == "" {
 						reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 					} else {
-						reqLogger.Info(logs, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						writeConditionsFromLogs(instance, logs)
+						err = r.client.Update(context.TODO(), instance)
+						if err != nil {
+							reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+						}
 					}
 				}
 			}
@@ -241,4 +247,30 @@ func getPodLogs(pod corev1.Pod) string {
 	str := buf.String()
 
 	return str
+}
+
+func writeConditionsFromLogs(instance *fortiov1alpha1.LoadTest, logs string) {
+	parsedLogs := strings.Fields(logs)
+	first50persent := true
+	condition := &fortiov1alpha1.LoadTestCondition{}
+
+	for i, word := range parsedLogs {
+		switch word {
+		case "50%":
+			if first50persent == true {
+				first50persent = false
+			} else {
+				condition.Target50 = parsedLogs[i+1]
+			}
+		case "75%":
+			condition.Target75 = parsedLogs[i+1]
+		case "90%":
+			condition.Target90 = parsedLogs[i+1]
+		case "99%":
+			condition.Target99 = parsedLogs[i+1]
+		case "99.9%":
+			condition.Target999 = parsedLogs[i+1]
+		}
+	}
+	instance.Status.Condition = append(instance.Status.Condition, *condition)
 }

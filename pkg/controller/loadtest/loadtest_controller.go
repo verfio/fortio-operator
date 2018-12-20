@@ -126,8 +126,8 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 			return reconcile.Result{}, err
 		}
 
-		// Job created successfully - don't requeue
-		return reconcile.Result{}, nil
+		// // Job created successfully - don't requeue
+		// return reconcile.Result{}, nil
 	} else if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -247,12 +247,6 @@ func getPodLogs(pod corev1.Pod) string {
 		return "error in copy information from podLogs to buf"
 	}
 	str := buf.String()
-//	var out []byte
-//	_, err = readCloser.Read(out)
-//	if err != nil && err.Error() != "EOF" {
-//		return "error in reading from the stream" + err.Error()
-//	}
-//	str := string(out)
 
 	return str
 }

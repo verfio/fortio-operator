@@ -194,6 +194,29 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 	labels := map[string]string{
 		"app": cr.Name,
 	}
+	command := []string{"fortio"}
+	if cr.Spec.Action != "" {
+		command = append(command, cr.Spec.Action)
+	}
+	if cr.Spec.Duration != "" {
+		command = append(command, "-t", cr.Spec.Duration)
+	}
+	if cr.Spec.Header != "" {
+		command = append(command, "-H", cr.Spec.Header)
+	}
+	if cr.Spec.User != "" {
+		command = append(command, "-user", cr.Spec.User+":"+cr.Spec.Password)
+	}
+	if cr.Spec.Qps != "" {
+		command = append(command, "-qps", cr.Spec.Qps)
+	}
+	if cr.Spec.Threads != "" {
+		command = append(command, "-c", cr.Spec.Threads)
+	}
+	if cr.Spec.URL != "" {
+		command = append(command, cr.Spec.URL)
+	}
+
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cr.Name + "-job",
@@ -207,7 +230,7 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 						{
 							Name:    "fortio",
 							Image:   "fortio/fortio",
-							Command: []string{"fortio", cr.Spec.Action, "-t", cr.Spec.Duration, cr.Spec.URL},
+							Command: command,
 						},
 					},
 					RestartPolicy: "Never",
@@ -266,6 +289,11 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.LoadTest, logs string) {
 			condition.Target99 = parsedLogs[i+1]
 		case "99.9%":
 			condition.Target999 = parsedLogs[i+1]
+		case "warmup)":
+			condition.RespTime = parsedLogs[i+1] + parsedLogs[i+2]
+		}
+		if strings.Contains(word, "qps=") {
+			condition.Qps = word[4:]
 		}
 	}
 	instance.Status.Condition = append(instance.Status.Condition, *condition)

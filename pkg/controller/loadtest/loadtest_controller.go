@@ -108,23 +108,6 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	//Attempt to update the status field of our instance
-
-	condition := &fortiov1alpha1.LoadTestCondition{
-		"0.112",
-		"0.2123",
-		"0.5133",
-		"0.912",
-		"2.991",
-	}
-
-	if len(instance.Status.Condition) < 1 {
-		instance.Status.Condition = append(instance.Status.Condition, *condition)
-		err = r.client.Update(context.TODO(), instance)
-	}
-
-	// Attempt is finished
-
 	// Define a new Job object
 	job := newJobForCR(instance)
 
@@ -151,6 +134,11 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// Job already exists - don't requeue
 	reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	// If we already got logs from the succeeded pod - don't take logs - don't requeue
+	if found.Status.Succeeded == 1 {
+		return reconcile.Result{}, nil
+	}
+	// Take logs from succeeded pod
 	reqLogger.Info("Verify if it completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	for true {
 		err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
@@ -185,16 +173,16 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						} else {
 							reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							writeConditionsFromLogs(instance, logs)
-							err = r.client.Update(context.TODO(), instance)
-							if err != nil {
-								reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
-							}
 						}
 					}
 				}
 			}
 			break
 		}
+	}
+	err = r.client.Update(context.TODO(), instance)
+	if err != nil {
+		reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
 	}
 	reqLogger.Info("Finished reconciling cycle", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	return reconcile.Result{}, nil

@@ -253,17 +253,12 @@ func getPodLogs(pod corev1.Pod) string {
 
 func writeConditionsFromLogs(instance *fortiov1alpha1.LoadTest, logs string) {
 	parsedLogs := strings.Fields(logs)
-	first50persent := true
 	condition := &fortiov1alpha1.LoadTestCondition{}
 
 	for i, word := range parsedLogs {
 		switch word {
 		case "50%":
-			if first50persent == true {
-				first50persent = false
-			} else {
-				condition.Target50 = parsedLogs[i+1]
-			}
+			condition.Target50 = parsedLogs[i+1]
 		case "75%":
 			condition.Target75 = parsedLogs[i+1]
 		case "90%":

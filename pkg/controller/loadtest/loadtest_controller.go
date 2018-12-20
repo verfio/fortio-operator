@@ -173,6 +173,8 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						if logs == "" {
 							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 						} else {
+							getJSONfromLog(logs)
+							reqLogger.Info("Writing JSON to log: "+logs, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							writeConditionsFromLogs(instance, logs)
 						}
@@ -270,4 +272,11 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.LoadTest, logs string) {
 		}
 	}
 	instance.Status.Condition = append(instance.Status.Condition, *condition)
+}
+
+func getJSONfromLog(log string) string {
+	i := strings.Index(log, "{")
+	j := strings.LastIndex(log, "}")
+	s := log[i : j+1]
+	return s
 }

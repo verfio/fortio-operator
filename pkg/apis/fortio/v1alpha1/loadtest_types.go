@@ -17,7 +17,6 @@ type LoadTestSpec struct {
 	Qps	 string `json:"qps"`
 	Threads  string `json:"threads"`
 	Action   string `json:"action"`
-	
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
@@ -35,6 +34,8 @@ type LoadTestCondition struct {
 	Target90	string	`json:"90%"`
 	Target99	string	`json:"99%"`
 	Target999	string	`json:"99.9%"`
+	RespTime	string	`json:"avg"`
+	Qps		string	`json:"qps"`
 }
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

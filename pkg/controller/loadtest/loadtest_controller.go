@@ -132,7 +132,7 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	// Job already exists - don't requeue
 	reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 
-	// If we already got logs from the succeeded pod - don't take logs - don't requeue
+	// If we already got logs from the succeeded pod - don't take logs - delete the job - don't requeue
 	if found.Status.Succeeded == 1 {
 		reqLogger.Info("Deleting job as we took all we need from it", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 		r.client.Delete(context.TODO(), found)

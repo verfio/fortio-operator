@@ -172,8 +172,8 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						if logs == "" {
 							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 						} else {
-							getJSONfromLog(logs)
-							reqLogger.Info("Writing JSON to log: "+logs, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+							// getJSONfromLog(logs)
+							// reqLogger.Info("Writing JSON to log: "+logs, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							writeConditionsFromLogs(instance, logs)
 						}

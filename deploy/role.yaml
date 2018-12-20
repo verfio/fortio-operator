@@ -14,13 +14,12 @@ rules:
   - events
   - configmaps
   - secrets
-    #  - jobs
   verbs:
   - '*'
 - apiGroups:
-  - "batch"
-  resources: 
-  - jobs  
+  - batch
+  resources:
+  - jobs
   verbs:
   - '*'
 - apiGroups:
@@ -49,5 +48,6 @@ rules:
   - fortio.verf.io
   resources:
   - '*'
+  - curltests
   verbs:
   - '*'

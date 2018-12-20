@@ -151,40 +151,46 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	// Job already exists - don't requeue
 	reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	reqLogger.Info("Verify if it completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
-	if found.Status.Succeeded == 1 { // verify that there is one succeeded pod
-		for _, c := range found.Status.Conditions {
-			if c.Type == "Complete" && c.Status == "True" {
-				reqLogger.Info("Job competed. Fetch for pod", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
-				podList := &corev1.PodList{}
-				labelSelector := labels.SelectorFromSet(labelsForJob(found.Name))
-				listOps := &client.ListOptions{
-					Namespace:     instance.Namespace,
-					LabelSelector: labelSelector,
-				}
-				err = r.client.List(context.TODO(), listOps, podList)
-				if err != nil {
-					reqLogger.Error(err, "Failed to list pods.", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
-					return reconcile.Result{}, err
-				}
-				for _, pod := range podList.Items {
-					reqLogger.Info("Found pod name:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-					reqLogger.Info("Readings logs from pod:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-					logs := getPodLogs(pod)
-					if logs == "" {
-						reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-					} else {
-						reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-						writeConditionsFromLogs(instance, logs)
-						err = r.client.Update(context.TODO(), instance)
-						if err != nil {
-							reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+	for true {
+		if found.Status.Succeeded == 0 {
+			reqLogger.Info("Job is still running", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			continue
+		} else if found.Status.Succeeded == 1 { // verify that there is one succeeded pod
+			for _, c := range found.Status.Conditions {
+				if c.Type == "Complete" && c.Status == "True" {
+					reqLogger.Info("Job competed. Fetch for pod", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+					podList := &corev1.PodList{}
+					labelSelector := labels.SelectorFromSet(labelsForJob(found.Name))
+					listOps := &client.ListOptions{
+						Namespace:     instance.Namespace,
+						LabelSelector: labelSelector,
+					}
+					err = r.client.List(context.TODO(), listOps, podList)
+					if err != nil {
+						reqLogger.Error(err, "Failed to list pods.", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+						return reconcile.Result{}, err
+					}
+					for _, pod := range podList.Items {
+						reqLogger.Info("Found pod name:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						reqLogger.Info("Readings logs from pod:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						logs := getPodLogs(pod)
+						if logs == "" {
+							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						} else {
+							reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+							writeConditionsFromLogs(instance, logs)
+							err = r.client.Update(context.TODO(), instance)
+							if err != nil {
+								reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+							}
 						}
 					}
 				}
 			}
+			break
 		}
 	}
-	reqLogger.Info("Go to reconcile loop", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	reqLogger.Info("Finished reconciling cycle", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	return reconcile.Result{}, nil
 }
 

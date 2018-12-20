@@ -1,10 +1,10 @@
 apiVersion: fortio.verf.io/v1alpha1
 kind: LoadTest
 metadata:
-  name: tcgua-loadtest
+  name: verfio-loadtest
 spec:
   # Add fields here
   #  size: 3
   duration: 10s
-  url: "https://tcgua.com"
+  url: "https://verf.io"
   action: load

@@ -236,7 +236,6 @@ func getPodLogs(pod corev1.Pod) string {
 	_, err = io.Copy(buf, podLogs)
 	
 	str := buf.String()
-
 //	var out []byte
 //	_, err = readCloser.Read(out)
 //	if err != nil && err.Error() != "EOF" {

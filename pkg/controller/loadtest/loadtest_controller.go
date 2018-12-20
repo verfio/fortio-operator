@@ -134,10 +134,12 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// Job already exists - don't requeue
 	reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+
 	// If we already got logs from the succeeded pod - don't take logs - don't requeue
 	if found.Status.Succeeded == 1 {
 		return reconcile.Result{}, nil
 	}
+
 	// Take logs from succeeded pod
 	reqLogger.Info("Verify if it completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	for true {

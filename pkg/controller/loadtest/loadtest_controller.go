@@ -3,6 +3,7 @@ package loadtest
 import (
 	"context"
 	"strings"
+	"time"
 
 	"bytes"
 	"io"
@@ -152,8 +153,13 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	reqLogger.Info("Verify if it completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	for true {
+		err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 		if found.Status.Succeeded == 0 {
-			reqLogger.Info("Job is still running", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			reqLogger.Info("Job is still running. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			time.Sleep(time.Second * 10)
 			continue
 		} else if found.Status.Succeeded == 1 { // verify that there is one succeeded pod
 			for _, c := range found.Status.Conditions {

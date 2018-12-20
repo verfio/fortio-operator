@@ -2,6 +2,10 @@ package loadtest
 
 import (
 	"context"
+	"strings"
+
+	"bytes"
+	"io"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -21,8 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"bytes"
-	"io"
 )
 
 var log = logf.Log.WithName("controller_loadtest")
@@ -149,35 +151,46 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	// Job already exists - don't requeue
 	reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	reqLogger.Info("Verify if it completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
-	if found.Status.Succeeded == 1 { // verify that there is one succeeded pod
-		for _, c := range found.Status.Conditions {
-			if c.Type == "Complete" && c.Status == "True" {
-				reqLogger.Info("Job competed. Fetch for pod", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
-				podList := &corev1.PodList{}
-				labelSelector := labels.SelectorFromSet(labelsForJob(found.Name))
-				listOps := &client.ListOptions{
-					Namespace:     instance.Namespace,
-					LabelSelector: labelSelector,
-				}
-				err = r.client.List(context.TODO(), listOps, podList)
-				if err != nil {
-					reqLogger.Error(err, "Failed to list pods.", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
-					return reconcile.Result{}, err
-				}
-				for _, pod := range podList.Items {
-					reqLogger.Info("Found pod name:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-					reqLogger.Info("Readings logs from pod:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-					logs := getPodLogs(pod)
-					if logs == "" {
-						reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-					} else {
-						reqLogger.Info(logs, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+	for true {
+		if found.Status.Succeeded == 0 {
+			reqLogger.Info("Job is still running", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			continue
+		} else if found.Status.Succeeded == 1 { // verify that there is one succeeded pod
+			for _, c := range found.Status.Conditions {
+				if c.Type == "Complete" && c.Status == "True" {
+					reqLogger.Info("Job competed. Fetch for pod", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+					podList := &corev1.PodList{}
+					labelSelector := labels.SelectorFromSet(labelsForJob(found.Name))
+					listOps := &client.ListOptions{
+						Namespace:     instance.Namespace,
+						LabelSelector: labelSelector,
+					}
+					err = r.client.List(context.TODO(), listOps, podList)
+					if err != nil {
+						reqLogger.Error(err, "Failed to list pods.", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+						return reconcile.Result{}, err
+					}
+					for _, pod := range podList.Items {
+						reqLogger.Info("Found pod name:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						reqLogger.Info("Readings logs from pod:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						logs := getPodLogs(pod)
+						if logs == "" {
+							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						} else {
+							reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+							writeConditionsFromLogs(instance, logs)
+							err = r.client.Update(context.TODO(), instance)
+							if err != nil {
+								reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+							}
+						}
 					}
 				}
 			}
+			break
 		}
 	}
-	reqLogger.Info("Go to reconcile loop", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	reqLogger.Info("Finished reconciling cycle", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	return reconcile.Result{}, nil
 }
 
@@ -234,7 +247,9 @@ func getPodLogs(pod corev1.Pod) string {
 
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, podLogs)
-	
+	if err != nil {
+		return "error in copy information from podLogs to buf"
+	}
 	str := buf.String()
 //	var out []byte
 //	_, err = readCloser.Read(out)
@@ -242,5 +257,32 @@ func getPodLogs(pod corev1.Pod) string {
 //		return "error in reading from the stream" + err.Error()
 //	}
 //	str := string(out)
+
 	return str
+}
+
+func writeConditionsFromLogs(instance *fortiov1alpha1.LoadTest, logs string) {
+	parsedLogs := strings.Fields(logs)
+	first50persent := true
+	condition := &fortiov1alpha1.LoadTestCondition{}
+
+	for i, word := range parsedLogs {
+		switch word {
+		case "50%":
+			if first50persent == true {
+				first50persent = false
+			} else {
+				condition.Target50 = parsedLogs[i+1]
+			}
+		case "75%":
+			condition.Target75 = parsedLogs[i+1]
+		case "90%":
+			condition.Target90 = parsedLogs[i+1]
+		case "99%":
+			condition.Target99 = parsedLogs[i+1]
+		case "99.9%":
+			condition.Target999 = parsedLogs[i+1]
+		}
+	}
+	instance.Status.Condition = append(instance.Status.Condition, *condition)
 }

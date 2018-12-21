@@ -134,6 +134,7 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// If we already got logs from the succeeded pod - don't take logs - delete the job - don't requeue
 	if found.Status.Succeeded == 1 {
+		reqLogger.Info("We already took logs - job is done!", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 		return reconcile.Result{}, nil
 	}
 
@@ -172,15 +173,19 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						} else {
 							reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							writeConditionsFromLogs(instance, logs)
+							err = r.client.Update(context.TODO(), instance)
+							if err != nil {
+								reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+							}
 							json := getJSONfromLog(logs)
-							reqLogger.Info("Writing JSON to log: "+json, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+							// reqLogger.Info("Writing JSON to log: "+json, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							configMap := &corev1.ConfigMap{}
 							err = r.client.Get(context.TODO(), types.NamespacedName{Name: "fortio-data-dir", Namespace: job.Namespace}, configMap)
 							if err != nil {
 								reqLogger.Error(err, "Failed to find config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
 							} else {
 								configMap.Data = make(map[string]string)
-								configMap.Data["default.json"] = json
+								configMap.Data[found.Name+"_"+time.Now().Format("2006-01-02_15-04-05")+".json"] = json
 								err = r.client.Update(context.TODO(), configMap)
 								if err != nil {
 									reqLogger.Error(err, "Failed to update config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
@@ -192,10 +197,6 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 			}
 			break
 		}
-	}
-	err = r.client.Update(context.TODO(), instance)
-	if err != nil {
-		reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
 	}
 	reqLogger.Info("Finished reconciling cycle", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	return reconcile.Result{}, nil
@@ -324,8 +325,4 @@ func getJSONfromLog(log string) string {
 	}
 	s := log[i : j+1]
 	return s
-}
-
-func writeToConfigMap(instance *fortiov1alpha1.LoadTest, json string) {
-
 }

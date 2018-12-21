@@ -179,6 +179,7 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 							if err != nil {
 								reqLogger.Error(err, "Failed to find config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
 							} else {
+								configMap.Data = make(map[string]string)
 								configMap.Data["default"] = json
 								err = r.client.Update(context.TODO(), configMap)
 								if err != nil {

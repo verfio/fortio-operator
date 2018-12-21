@@ -49,5 +49,6 @@ rules:
   resources:
   - '*'
   - curltests
+  - servers
   verbs:
   - '*'

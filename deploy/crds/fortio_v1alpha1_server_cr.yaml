@@ -1,0 +1,7 @@
+apiVersion: fortio.verf.io/v1alpha1
+kind: Server
+metadata:
+  name: example-server
+spec:
+  # Add fields here
+  size: 3

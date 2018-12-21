@@ -190,14 +190,26 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 }
 
 func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
+	configMapDefaulMode := int32(0666)
 	backoffLimit := int32(4)
 	labels := map[string]string{
 		"app": cr.Name,
 	}
+
+	configMapVolumeSource := corev1.ConfigMapVolumeSource{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: "fortio-data-dir",
+		},
+		DefaultMode: &configMapDefaulMode,
+	}
+
+	mountPath := "/var/lib/fortio"
+
 	command := []string{"fortio"}
 	if cr.Spec.Action != "" {
 		command = append(command, cr.Spec.Action)
 	}
+	command = append(command, "-json", cr.Name+"-job.json")
 	if cr.Spec.Duration != "" {
 		command = append(command, "-t", cr.Spec.Duration)
 	}
@@ -231,6 +243,20 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 							Name:    "fortio",
 							Image:   "fortio/fortio",
 							Command: command,
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "fortio-data-dir",
+									MountPath: mountPath,
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "fortio-data-dir",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &configMapVolumeSource,
+							},
 						},
 					},
 					RestartPolicy: "Never",

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -138,7 +138,6 @@ func (r *ReconcileServer) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
-
 	// Check if Service already exists
 	foundSvc := &corev1.Service{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: svc.Name, Namespace: svc.Namespace}, foundSvc)
@@ -150,14 +149,23 @@ func (r *ReconcileServer) Reconcile(request reconcile.Request) (reconcile.Result
 			return reconcile.Result{}, err
 		}
 
-		// Service created saccessfully - don't requeue
-		return reconcile.Result{}, nil
+		reqLogger.Info("Waiting until service is created...", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+		for true {
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: svc.Name, Namespace: svc.Namespace}, foundSvc)
+			if err != nil && errors.IsNotFound(err) {
+				continue
+			} else {
+				reqLogger.Info("Service successfully created", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+				// Service created saccessfully - don't requeue
+				return reconcile.Result{}, nil
+			}
+		}
 	} else if err != nil {
 		return reconcile.Result{}, err
 	}
 
 	// Service already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Service and ReplicaSet already exist", "ReplicaSet.Name", found.Name, "Service.Name", foundSvc.Name, )
+	reqLogger.Info("Skip reconcile: Service and ReplicaSet already exist", "ReplicaSet.Name", found.Name, "Service.Name", foundSvc.Name)
 	return reconcile.Result{}, nil
 }
 
@@ -169,10 +177,10 @@ func newReplicaSetForCR(cr *fortiov1alpha1.Server) *appsv1.ReplicaSet {
 	configMapVolumeSource := corev1.ConfigMapVolumeSource{
 		LocalObjectReference: corev1.LocalObjectReference{
 			Name: "fortio-data-dir",
-		  },
+		},
 		DefaultMode: &configMapDefaulMode,
-		}
-	 mountPath := "/var/lib/fortio"
+	}
+	mountPath := "/var/lib/fortio"
 
 	labels := map[string]string{
 		"app": cr.Name,
@@ -188,38 +196,37 @@ func newReplicaSetForCR(cr *fortiov1alpha1.Server) *appsv1.ReplicaSet {
 				{
 					Name:    "fortio",
 					Image:   "fortio/fortio",
-					Command: []string{"fortio","server"},
+					Command: []string{"fortio", "server"},
 					VolumeMounts: []corev1.VolumeMount{
 						{
-						     Name:      "fortio-data-dir",
-						     MountPath: mountPath,
+							Name:      "fortio-data-dir",
+							MountPath: mountPath,
 						},
-				        },
+					},
 				},
 			},
-			 Volumes: []corev1.Volume{
+			Volumes: []corev1.Volume{
 				{
 					Name: "fortio-data-dir",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &configMapVolumeSource,
-						},
+					},
 				},
 			},
 		},
 	}
-	selector := &metav1.LabelSelector {
+	selector := &metav1.LabelSelector{
 		MatchLabels: labels,
 	}
 	rsSpec := appsv1.ReplicaSetSpec{
 		Selector: selector,
 		Template: corev1.PodTemplateSpec{
-			Spec: pod.Spec,
+			Spec:       pod.Spec,
 			ObjectMeta: pod.ObjectMeta,
 		},
-
 	}
 
-	return &appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cr.Name,
 			Namespace: cr.Namespace,
@@ -239,15 +246,15 @@ func newServiceForCR(cr *fortiov1alpha1.Server) *corev1.Service {
 	svcSpec := corev1.ServiceSpec{
 		Selector: labels,
 		Ports: []corev1.ServicePort{
-				corev1.ServicePort{
-					Name: "http",
-					Port: int32(8080),
+			corev1.ServicePort{
+				Name: "http",
+				Port: int32(8080),
 			},
 		},
 		Type: corev1.ServiceTypeLoadBalancer,
 	}
 
-	return &corev1.Service {
+	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cr.Name,
 			Namespace: cr.Namespace,

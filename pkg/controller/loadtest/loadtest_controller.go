@@ -170,10 +170,20 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						if logs == "" {
 							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 						} else {
-							getJSONfromLog(logs)
-							reqLogger.Info("Writing JSON to log: "+logs, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							writeConditionsFromLogs(instance, logs)
+							json := getJSONfromLog(logs)
+							reqLogger.Info("Writing JSON to log: "+json, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+							configMap := &corev1.ConfigMap{}
+							err = r.client.Get(context.TODO(), types.NamespacedName{Name: "fortio-data-dir", Namespace: job.Namespace}, configMap)
+							if err != nil {
+								reqLogger.Error(err, "Failed to find config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+							}
+							configMap.Data["default"] = json
+							err = r.client.Update(context.TODO(), configMap)
+							if err != nil {
+								reqLogger.Error(err, "Failed to update config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+							}
 						}
 					}
 				}
@@ -312,4 +322,8 @@ func getJSONfromLog(log string) string {
 	}
 	s := log[i : j+1]
 	return s
+}
+
+func writeToConfigMap(instance *fortiov1alpha1.LoadTest, json string) {
+
 }

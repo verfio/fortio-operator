@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"time"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -133,7 +134,7 @@ func (r *ReconcileServer) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 
 		// ReplicaSet created successfully - let's check Service now, don't reconcile yet
-		return reconcile.Result{}, nil
+		// return reconcile.Result{}, nil
 	} else if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -153,6 +154,8 @@ func (r *ReconcileServer) Reconcile(request reconcile.Request) (reconcile.Result
 		for true {
 			err = r.client.Get(context.TODO(), types.NamespacedName{Name: svc.Name, Namespace: svc.Namespace}, foundSvc)
 			if err != nil && errors.IsNotFound(err) {
+				reqLogger.Info("Service is not yet created. Waiting for 10s", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+				time.Sleep(time.Second * 10)
 				continue
 			} else {
 				reqLogger.Info("Service successfully created", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)

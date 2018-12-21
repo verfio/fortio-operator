@@ -178,11 +178,12 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 							err = r.client.Get(context.TODO(), types.NamespacedName{Name: "fortio-data-dir", Namespace: job.Namespace}, configMap)
 							if err != nil {
 								reqLogger.Error(err, "Failed to find config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
-							}
-							configMap.Data["default"] = json
-							err = r.client.Update(context.TODO(), configMap)
-							if err != nil {
-								reqLogger.Error(err, "Failed to update config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+							} else {
+								configMap.Data["default"] = json
+								err = r.client.Update(context.TODO(), configMap)
+								if err != nil {
+									reqLogger.Error(err, "Failed to update config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+								}
 							}
 						}
 					}

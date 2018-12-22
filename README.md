@@ -63,7 +63,6 @@ kubectl get pods
 NAME                              READY     STATUS      RESTARTS   AGE
 fortio-operator-8fdc6d967-ssjk4   1/1       Running     0          15m
 verfio-job-v8wl6                  0/1       Completed   0          5m
-oleg@cloudshell:~ (istio-213517)$
 ```
 
 When test is finished, the result will be stored in the `fortio-data-dir` configmap:

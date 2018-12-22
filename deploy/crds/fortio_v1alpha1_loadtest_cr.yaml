@@ -3,8 +3,6 @@ kind: LoadTest
 metadata:
   name: verfio
 spec:
-  # Add fields here
-  #  size: 3
   duration: 10s
   url: "https://verf.io"
   action: load

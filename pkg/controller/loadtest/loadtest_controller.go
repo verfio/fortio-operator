@@ -127,10 +127,10 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	} else if err != nil {
 		return reconcile.Result{}, err
+	} else {
+		// Job already exists - don't requeue
+		reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	}
-
-	// Job already exists - don't requeue
-	reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 
 	// If we already got logs from the succeeded pod - don't take logs - delete the job - don't requeue
 	if found.Status.Succeeded == 1 {
@@ -139,13 +139,20 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	// Take logs from succeeded pod
-	reqLogger.Info("Verify if it completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	reqLogger.Info("Verify if it is completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	for true {
 		err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
-		if err != nil {
+		if err != nil && errors.IsNotFound(err) {
+			reqLogger.Info("Job is not yet created. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			time.Sleep(time.Second * 10)
+			continue
+		} else if err != nil {
 			return reconcile.Result{}, err
 		}
-		if found.Status.Succeeded == 0 {
+		if found.Status.Failed == 4 {
+			reqLogger.Info("Job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			return reconcile.Result{}, nil
+		} else if found.Status.Succeeded == 0 {
 			reqLogger.Info("Job is still running. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 			time.Sleep(time.Second * 10)
 			continue
@@ -161,33 +168,36 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 					}
 					err = r.client.List(context.TODO(), listOps, podList)
 					if err != nil {
-						reqLogger.Error(err, "Failed to list pods.", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+						reqLogger.Error(err, "Failed to list pods.", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 						return reconcile.Result{}, err
 					}
 					for _, pod := range podList.Items {
-						reqLogger.Info("Found pod name:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-						reqLogger.Info("Readings logs from pod:", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						reqLogger.Info("Found pod name: " + pod.Name)
+						reqLogger.Info("Readings logs from pod " + pod.Name)
 						logs := getPodLogs(pod)
 						if logs == "" {
 							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 						} else {
-							reqLogger.Info("Writing results to status of "+instance.Name, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+							reqLogger.Info("Writing results to status of " + instance.Name)
 							writeConditionsFromLogs(instance, logs)
 							err = r.client.Update(context.TODO(), instance)
 							if err != nil {
-								reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+								reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							}
 							json := getJSONfromLog(logs)
 							configMap := &corev1.ConfigMap{}
+							reqLogger.Info("Looking for config map fortio-data-dir")
 							err = r.client.Get(context.TODO(), types.NamespacedName{Name: "fortio-data-dir", Namespace: job.Namespace}, configMap)
 							if err != nil {
-								reqLogger.Error(err, "Failed to find config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+								reqLogger.Error(err, "Failed to find config map")
 							} else {
+								reqLogger.Info("Config map found")
 								configMap.Data = make(map[string]string)
 								configMap.Data[instance.Name+"_"+time.Now().Format("2006-01-02_150405")+".json"] = json
+								reqLogger.Info("Updating config map fortio-data-dir")
 								err = r.client.Update(context.TODO(), configMap)
 								if err != nil {
-									reqLogger.Error(err, "Failed to update config map", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
+									reqLogger.Error(err, "Failed to update config map")
 								}
 							}
 						}

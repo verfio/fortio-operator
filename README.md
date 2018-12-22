@@ -9,6 +9,27 @@ The name fortio comes from greek φορτίο which means load/burden.
 
 ## Installation
 
+Run this command to deploy the operator
+```sh
+kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
+serviceaccount "fortio-operator" created
+clusterrolebinding.rbac.authorization.k8s.io "fortio-operator" created
+role.rbac.authorization.k8s.io "fortio-operator" created
+rolebinding.rbac.authorization.k8s.io "fortio-operator" created
+deployment.apps "fortio-operator" created
+configmap "fortio-data-dir" created
+```
+Verify that fortio-operator pod is up and running
+
+```sh
+kubectl get pods 
+```
+
+
+1. Create a new operator project using the SDK Command Line Interface(CLI)
+2. Define new resource APIs by adding Custom Resource Definitions(CRD)
+3. Define Controllers to watch and reconcile resources
+
 
 [of-home]: https://github.com/operator-framework
 [of-blog]: https://coreos.com/blog/introducing-operator-framework

@@ -177,8 +177,8 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 							if err != nil {
 								reqLogger.Error(err, "Failed to update instance", "Job.Namespace", instance.Namespace, "Job.Name", instance.Name)
 							}
+							time.Sleep(time.Minute * 10)
 							json := getJSONfromLog(logs)
-							// reqLogger.Info("Writing JSON to log: "+json, "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 							configMap := &corev1.ConfigMap{}
 							err = r.client.Get(context.TODO(), types.NamespacedName{Name: "fortio-data-dir", Namespace: job.Namespace}, configMap)
 							if err != nil {

@@ -1,7 +1,7 @@
 apiVersion: fortio.verf.io/v1alpha1
 kind: CurlTest
 metadata:
-  name: example-curltest
+  name: verfio
 spec:
-  # Add fields here
-  size: 3
+  url: "https://verf.io"
+  lookForString: "VERF.IO"

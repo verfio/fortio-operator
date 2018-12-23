@@ -236,8 +236,8 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs string) {
 	condition := &fortiov1alpha1.CurlTestCondition{}
 
 	for _, word := range parsedLogs {
-		if strings.Contains(word, "qps=") {
-			condition.Result = word[4:]
+		if strings.Contains(word, instance.Spec.LookForString) {
+			condition.Result = "Success: " + word + " found in code of URL"
 		}
 	}
 	instance.Status.Condition = append(instance.Status.Condition, *condition)

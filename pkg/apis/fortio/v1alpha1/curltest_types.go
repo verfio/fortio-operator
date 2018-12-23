@@ -9,17 +9,23 @@ import (
 
 // CurlTestSpec defines the desired state of CurlTest
 type CurlTestSpec struct {
-	URL		string  `json:"url"`
-	WaitForCode	string  `json:"waitForCode"`
-	LookForString	string	`json:"lookForString"`
+	URL           string `json:"url"`
+	WaitForCode   string `json:"waitForCode"`
+	LookForString string `json:"lookForString"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
 
 // CurlTestStatus defines the observed state of CurlTest
 type CurlTestStatus struct {
+	Condition []CurlTestCondition `json:"condition"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+}
+
+// CurlTestCondition defines one item of Condition in CurlTestStatus
+type CurlTestCondition struct {
+	Result string `json:"Result"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

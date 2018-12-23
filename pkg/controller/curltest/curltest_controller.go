@@ -1,14 +1,22 @@
 package curltest
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"strings"
+	"time"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -100,53 +108,169 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	// Define a new Pod object
-	pod := newPodForCR(instance)
+	job := newJobForCR(instance)
 
 	// Set CurlTest instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(instance, job, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
+	// Check if this Job already exists
+	found := &batchv1.Job{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
+		reqLogger.Info("Creating a new Job", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
+		err = r.client.Create(context.TODO(), job)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
 	} else if err != nil {
 		return reconcile.Result{}, err
+	} else {
+		// Job already exists - don't requeue
+		reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
+	// If we already got logs from the succeeded pod - don't take logs - delete the job - don't requeue
+	if found.Status.Succeeded == 1 {
+		reqLogger.Info("We already took logs - job is done!", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+		return reconcile.Result{}, nil
+	}
+
+	// Take logs from succeeded pod
+	reqLogger.Info("Verify if it is completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	for true {
+		err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
+		if err != nil && errors.IsNotFound(err) {
+			reqLogger.Info("Job is not yet created. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			time.Sleep(time.Second * 10)
+			continue
+		} else if err != nil {
+			return reconcile.Result{}, err
+		}
+		if found.Status.Failed == 4 {
+			reqLogger.Info("Job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			return reconcile.Result{}, nil
+		} else if found.Status.Succeeded == 0 {
+			reqLogger.Info("Job is still running. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			time.Sleep(time.Second * 10)
+			continue
+		} else if found.Status.Succeeded == 1 { // verify that there is one succeeded pod
+			for _, c := range found.Status.Conditions {
+				if c.Type == "Complete" && c.Status == "True" {
+					reqLogger.Info("Job competed. Fetch for pod", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+					podList := &corev1.PodList{}
+					labelSelector := labels.SelectorFromSet(labelsForJob(found.Name))
+					listOps := &client.ListOptions{
+						Namespace:     instance.Namespace,
+						LabelSelector: labelSelector,
+					}
+					err = r.client.List(context.TODO(), listOps, podList)
+					if err != nil {
+						reqLogger.Error(err, "Failed to list pods.", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+						return reconcile.Result{}, err
+					}
+					for _, pod := range podList.Items {
+						reqLogger.Info("Found pod name: " + pod.Name)
+						reqLogger.Info("Readings logs from pod " + pod.Name)
+						logs := getPodLogs(pod)
+						if logs == "" {
+							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+						} else {
+							reqLogger.Info("Writing results to status of " + instance.Name)
+							writeConditionsFromLogs(instance, logs)
+							err = r.client.Update(context.TODO(), instance)
+							if err != nil {
+								reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+							} else {
+								reqLogger.Info("Successfully written results to status of " + instance.Name)
+							}
+						}
+					}
+				}
+			}
+			break
+		}
+	}
+	reqLogger.Info("Finished reconciling cycle", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	return reconcile.Result{}, nil
 }
 
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *fortiov1alpha1.CurlTest) *corev1.Pod {
+func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
+	backoffLimit := int32(4)
 	labels := map[string]string{
 		"app": cr.Name,
 	}
-	return &corev1.Pod{
+
+	command := []string{"fortio", "curl"}
+	if cr.Spec.URL != "" {
+		command = append(command, cr.Spec.URL)
+	}
+
+	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
+			Name:      cr.Name + "-job",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:    "fortio",
+							Image:   "fortio/fortio",
+							Command: command,
+						},
+					},
+					RestartPolicy: "Never",
 				},
 			},
+			BackoffLimit: &backoffLimit,
 		},
 	}
+}
+
+func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs string) {
+	parsedLogs := strings.Fields(logs)
+	condition := &fortiov1alpha1.CurlTestCondition{}
+
+	for _, word := range parsedLogs {
+		if strings.Contains(word, "qps=") {
+			condition.Result = word[4:]
+		}
+	}
+	instance.Status.Condition = append(instance.Status.Condition, *condition)
+}
+
+func getPodLogs(pod corev1.Pod) string {
+	podLogOpts := corev1.PodLogOptions{}
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return "error in getting config"
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "error in getting access to K8S"
+	}
+	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
+	podLogs, err := req.Stream()
+	if err != nil {
+		return "error in opening stream" + req.URL().String()
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "error in copy information from podLogs to buf"
+	}
+	str := buf.String()
+
+	return str
+}
+
+func labelsForJob(name string) map[string]string {
+	return map[string]string{"job-name": name}
 }

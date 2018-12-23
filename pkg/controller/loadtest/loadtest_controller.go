@@ -183,6 +183,8 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 							err = r.client.Update(context.TODO(), instance)
 							if err != nil {
 								reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+							} else {
+								reqLogger.Info("Successfully written results to status of " + instance.Name)
 							}
 							json := getJSONfromLog(logs)
 							configMap := &corev1.ConfigMap{}
@@ -231,8 +233,8 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 	if cr.Spec.User != "" {
 		command = append(command, "-user", cr.Spec.User+":"+cr.Spec.Password)
 	}
-	if cr.Spec.Qps != "" {
-		command = append(command, "-qps", cr.Spec.Qps)
+	if cr.Spec.QPS != "" {
+		command = append(command, "-qps", cr.Spec.QPS)
 	}
 	if cr.Spec.Threads != "" {
 		command = append(command, "-c", cr.Spec.Threads)
@@ -317,7 +319,7 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.LoadTest, logs string) {
 			condition.RespTime = parsedLogs[i+1] + parsedLogs[i+2]
 		}
 		if strings.Contains(word, "qps=") {
-			condition.Qps = word[4:]
+			condition.QPS = word[4:]
 		}
 	}
 	instance.Status.Condition = append(instance.Status.Condition, *condition)

@@ -3,9 +3,7 @@
 This project is based on the [Operator Framework][of-home], an open source toolkit to manage Kubernetes native applications, called Operators, in an effective, automated, and scalable way. Read more in the [introduction blog post][of-blog].
 
 [Fortio][fortio-home] is a load testing tool.
-Fortio runs at a specified query per second (qps) and records an histogram of execution time and calculates percentiles (e.g. p99 ie the response time such as 99% of the requests take less than that number (in seconds, SI unit)). It can run for a set duration, for a fixed number of calls, or until interrupted (at a constant target QPS, or max speed/load per connection/thread).
-
-The name fortio comes from greek φορτίο which means load/burden.
+Fortio runs at a specified query per second (qps) and records an histogram of execution time and calculates percentiles (e.g. p99 ie the response time such as 99% of the requests take less than that number (in seconds, SI unit)). It can run for a set duration, for a fixed number of calls, or until interrupted (at a constant target QPS, or max speed/load per connection/thread). The name fortio comes from greek φορτίο which means load/burden.
 
 ## Installation
 
@@ -31,9 +29,47 @@ NAME                              READY     STATUS    RESTARTS   AGE
 fortio-operator-8fdc6d967-ssjk4   1/1       Running   0          33s
 ```
 
+## CurlTest
+Create CurlTest resource and define expected response if needed, like [this YAML][fortio-curltest] 
+
+```yaml
+apiVersion: fortio.verf.io/v1alpha1
+kind: CurlTest
+metadata:
+  name: verfio
+spec:
+  url: "https://verf.io"
+  lookForString: "VERF.IO"
+```
+Apply this file:
+
+```sh
+kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_curltest_cr.yaml
+curltest.fortio.verf.io "verfio" created
+```
+
+Check the result using the descibe command:
+
+```sh
+kubectl describe curltest
+Name:         verfio
+Namespace:    default
+Labels:       <none>
+API Version:  fortio.verf.io/v1alpha1
+Kind:         CurlTest
+Spec:
+  Look For String:  VERF.IO
+  URL:              https://verf.io
+Status:
+  Condition:
+    Result:  Success: VERF.IO found in the code of requested web-page
+Events:      <none>
+```
+As we found that resource is available, let's fire the loadtest.
+
 ## LoadTest
 
-Create LoadTest resource and define desired conditions, for example, [this YAML][fortio-loadtest] says that we want to test the https://verf.io for 10 seconds:
+Create LoadTest resource and define desired conditions. For example, [this YAML][fortio-loadtest] says that we want to test the https://verf.io for 10 seconds:
 
 ```yaml
 apiVersion: fortio.verf.io/v1alpha1
@@ -52,7 +88,7 @@ kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master
 
 loadtest.fortio.verf.io "verfio" created
 ```
-Verify that Job to run the LoadTest was created and Pod successfully finished the required task:
+Verify that Job to run the LoadTest is created and Pod has successfully completed the required task:
 
 ```sh
 kubectl get jobs
@@ -111,10 +147,35 @@ verfio_2018-12-22_155126.json:
       },
       ...
 ```
-In order to visualize the data run the Server.
+Also, you can observe the result in the Status field of LoadTest resource:
+```sh
+kubectl describe loadtest
+Name:         verfio
+Namespace:    default
+Labels:       <none>
+API Version:  fortio.verf.io/v1alpha1
+Kind:         LoadTest
+Metadata:
+Spec:
+  Action:    load
+  Duration:  10s
+  URL:       https://verf.io
+Status:
+  Condition:
+    50 %:      0.045
+    75 %:      0.052
+    90 %:      0.0666667
+    99 %:      0.101175
+    99 . 9 %:  0.105407
+    Avg:       45.845ms
+    Qps:       7.9318
+Events:        <none>
+```
+
+In order to visualize this data run the Server.
 
 ## Server
-Run this command to instruct fortio-operator to spin up the server:
+Run this command to instruct the fortio-operator to spin up the server:
 ```sh
 kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_server_cr.yaml
 server.fortio.verf.io "fortio-server" created
@@ -125,7 +186,7 @@ kubectl get service fortio-server
 NAME            TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
 fortio-server   LoadBalancer   10.27.255.49   IP_ADDRESS   8080:30269/TCP   1m
 ```
-Navigate to specified address: http://{IP_ADDRESS}:8080/fortio/ to see the Fortio's UI and to http://{IP_ADDRESS}:8080/fortio/browse to see the list of saved results. Pick the existing one from the list and you will see the fancy diagram.
+Navigate to specified address: http://IP_ADDRESS:8080/fortio/ to see the Fortio's UI and to http://IP_ADDRESS:8080/fortio/browse to see the list of saved results. Pick the existing one from the list and you will see the fancy diagram.
 
 ## Clean up
 
@@ -160,3 +221,4 @@ configmap "fortio-data-dir" deleted
 [of-blog]: https://coreos.com/blog/introducing-operator-framework
 [fortio-home]: https://github.com/fortio/fortio
 [fortio-loadtest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_loadtest_cr.yaml
+[fortio-curltest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_curltest_cr.yaml

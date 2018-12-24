@@ -239,8 +239,8 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs string) {
 			condition.Result = "Success: " + word + " found in the code of requested web-page"
 		}
 	}
-	if condition.Result = "" {
-		condition.Result = "Failure: " + word + " is not found in the code of requested web-page"
+	if condition.Result == "" {
+		condition.Result = "Failure: " + instance.Spec.LookForString + " is not found in the code of requested web-page"
 	}
 	instance.Status.Condition = append(instance.Status.Condition, *condition)
 }

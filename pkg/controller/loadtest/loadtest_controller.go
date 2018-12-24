@@ -143,14 +143,15 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	for true {
 		err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
 		if err != nil && errors.IsNotFound(err) {
-			reqLogger.Info("Job is not yet created. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			reqLogger.Info("Job is not yet created. Waiting for 10s.", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
 			time.Sleep(time.Second * 10)
 			continue
 		} else if err != nil {
+			reqLogger.Error(err, "Failed to GET job from K8S.", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
 			return reconcile.Result{}, err
 		}
 		if found.Status.Failed == 4 {
-			reqLogger.Info("Job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			reqLogger.Info("All 4 attempts of the job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 			return reconcile.Result{}, nil
 		} else if found.Status.Succeeded == 0 {
 			reqLogger.Info("Job is still running. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
@@ -172,34 +173,33 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						return reconcile.Result{}, err
 					}
 					for _, pod := range podList.Items {
-						reqLogger.Info("Found pod name: " + pod.Name)
-						reqLogger.Info("Readings logs from pod " + pod.Name)
+						reqLogger.Info("Found pod. Readings logs from pod", "pod.Namespace", pod.Namespace, "pod.Name", pod.Name)
 						logs := getPodLogs(pod)
 						if logs == "" {
 							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 						} else {
-							reqLogger.Info("Writing results to status of " + instance.Name)
+							reqLogger.Info("Writing results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							writeConditionsFromLogs(instance, logs)
 							err = r.client.Update(context.TODO(), instance)
 							if err != nil {
-								reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+								reqLogger.Error(err, "Failed to update CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							} else {
-								reqLogger.Info("Successfully written results to status of " + instance.Name)
+								reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							}
 							json := getJSONfromLog(logs)
 							configMap := &corev1.ConfigMap{}
-							reqLogger.Info("Looking for config map fortio-data-dir")
+							reqLogger.Info("Looking for config map fortio-data-dir", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							err = r.client.Get(context.TODO(), types.NamespacedName{Name: "fortio-data-dir", Namespace: job.Namespace}, configMap)
 							if err != nil {
-								reqLogger.Error(err, "Failed to find config map")
+								reqLogger.Error(err, "Failed to find config map", "configMap.Namespace", configMap.Namespace, "configMap.Name", configMap.Name)
 							} else {
-								reqLogger.Info("Config map found")
+								reqLogger.Info("Config map found", "configMap.Namespace", configMap.Namespace, "configMap.Name", configMap.Name)
 								configMap.Data = make(map[string]string)
 								configMap.Data[instance.Name+"_"+time.Now().Format("2006-01-02_150405")+".json"] = json
-								reqLogger.Info("Updating config map fortio-data-dir")
+								reqLogger.Info("Updating config map", "configMap.Namespace", configMap.Namespace, "configMap.Name", configMap.Name)
 								err = r.client.Update(context.TODO(), configMap)
 								if err != nil {
-									reqLogger.Error(err, "Failed to update config map")
+									reqLogger.Error(err, "Failed to update config map", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 								}
 							}
 						}
@@ -209,7 +209,7 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 			break
 		}
 	}
-	reqLogger.Info("Finished reconciling cycle", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	reqLogger.Info("Finished reconciling cycle", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 	return reconcile.Result{}, nil
 }
 

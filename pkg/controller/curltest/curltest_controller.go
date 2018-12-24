@@ -142,14 +142,14 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	for true {
 		err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
 		if err != nil && errors.IsNotFound(err) {
-			reqLogger.Info("Job is not yet created. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			reqLogger.Info("Job is not yet created. Waiting for 10s.", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
 			time.Sleep(time.Second * 10)
 			continue
 		} else if err != nil {
 			return reconcile.Result{}, err
 		}
 		if found.Status.Failed == 4 {
-			reqLogger.Info("Job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			reqLogger.Info("All 4 attempts of the job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 			return reconcile.Result{}, nil
 		} else if found.Status.Succeeded == 0 {
 			reqLogger.Info("Job is still running. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
@@ -171,19 +171,18 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						return reconcile.Result{}, err
 					}
 					for _, pod := range podList.Items {
-						reqLogger.Info("Found pod name: " + pod.Name)
-						reqLogger.Info("Readings logs from pod " + pod.Name)
+						reqLogger.Info("Found pod. Readings logs from pod", "pod.Namespace", pod.Namespace, "pod.Name", pod.Name)
 						logs := getPodLogs(pod)
 						if logs == "" {
 							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 						} else {
-							reqLogger.Info("Writing results to status of " + instance.Name)
+							reqLogger.Info("Writing results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							writeConditionsFromLogs(instance, logs)
 							err = r.client.Update(context.TODO(), instance)
 							if err != nil {
 								reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							} else {
-								reqLogger.Info("Successfully written results to status of " + instance.Name)
+								reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							}
 						}
 					}
@@ -192,7 +191,7 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 			break
 		}
 	}
-	reqLogger.Info("Finished reconciling cycle", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	reqLogger.Info("Finished reconciling cycle", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 	return reconcile.Result{}, nil
 }
 
@@ -237,8 +236,11 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs string) {
 
 	for _, word := range parsedLogs {
 		if strings.Contains(word, instance.Spec.LookForString) {
-			condition.Result = "Success: " + word + " found in code of URL"
+			condition.Result = "Success: " + word + " found in the code of requested web-page"
 		}
+	}
+	if condition.Result = "" {
+		condition.Result = "Failure: " + word + " is not found in the code of requested web-page"
 	}
 	instance.Status.Condition = append(instance.Status.Condition, *condition)
 }

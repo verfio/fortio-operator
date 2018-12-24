@@ -17,6 +17,12 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - '*'
+- apiGroups:
   - ""
   resources:
   - namespaces
@@ -42,5 +48,7 @@ rules:
   - fortio.verf.io
   resources:
   - '*'
+  - curltests
+  - servers
   verbs:
   - '*'

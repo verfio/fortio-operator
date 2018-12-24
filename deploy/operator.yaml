@@ -15,7 +15,6 @@ spec:
       serviceAccountName: fortio-operator
       containers:
         - name: fortio-operator
-          # Replace this with the built image name
           image: verfio/fortio-operator
           ports:
           - containerPort: 60000

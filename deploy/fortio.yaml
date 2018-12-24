@@ -1,0 +1,182 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: servers.fortio.verf.io
+spec:
+  group: fortio.verf.io
+  names:
+    kind: Server
+    listKind: ServerList
+    plural: servers
+    singular: server
+  scope: Namespaced
+  version: v1alpha1
+  subresources:
+    status: {}
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: loadtests.fortio.verf.io
+spec:
+  group: fortio.verf.io
+  names:
+    kind: LoadTest
+    listKind: LoadTestList
+    plural: loadtests
+    singular: loadtest
+  scope: Namespaced
+  version: v1alpha1
+  subresources:
+    status: {}
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: curltests.fortio.verf.io
+spec:
+  group: fortio.verf.io
+  names:
+    kind: CurlTest
+    listKind: CurlTestList
+    plural: curltests
+    singular: curltest
+  scope: Namespaced
+  version: v1alpha1
+  subresources:
+    status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fortio-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: fortio-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: fortio-operator
+    namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: fortio-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  verbs:
+  - '*'
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - fortio.verf.io
+  resources:
+  - '*'
+  - curltests
+  - servers
+  verbs:
+  - '*'
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: fortio-operator
+subjects:
+- kind: ServiceAccount
+  name: fortio-operator
+roleRef:
+  kind: Role
+  name: fortio-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fortio-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: fortio-operator
+  template:
+    metadata:
+      labels:
+        name: fortio-operator
+    spec:
+      serviceAccountName: fortio-operator
+      containers:
+        - name: fortio-operator
+          image: verfio/fortio-operator
+          ports:
+          - containerPort: 60000
+            name: metrics
+          command:
+          - fortio-operator
+          imagePullPolicy: Always
+          readinessProbe:
+            exec:
+              command:
+                - stat
+                - /tmp/operator-sdk-ready
+            initialDelaySeconds: 4
+            periodSeconds: 10
+            failureThreshold: 1
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "fortio-operator"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fortio-data-dir
+  namespace: default

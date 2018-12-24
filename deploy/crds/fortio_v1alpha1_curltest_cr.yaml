@@ -1,8 +1,7 @@
 apiVersion: fortio.verf.io/v1alpha1
-kind: LoadTest
+kind: CurlTest
 metadata:
   name: verfio
 spec:
-  duration: 10s
   url: "https://verf.io"
-  action: load
+  lookForString: "VERF.IO"

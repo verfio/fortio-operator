@@ -214,7 +214,7 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 }
 
 func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
-	backoffLimit := int32(4)
+	backoffLimit := int32(1)
 	labels := map[string]string{
 		"app": cr.Name,
 	}

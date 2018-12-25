@@ -181,6 +181,16 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 							statusWriter := r.client.Status()
 							err = statusWriter.Update(context.TODO(), instance)
 							if err != nil {
+								err = r.client.Update(context.TODO(), instance)
+								if err != nil {
+									reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+								} else {
+									reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+								}
+							} else {
+								reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+							}
+							if err != nil {
 								reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							} else {
 								reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)

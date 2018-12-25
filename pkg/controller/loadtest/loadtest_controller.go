@@ -182,9 +182,13 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 							writeConditionsFromLogs(instance, logs)
 							statusWriter := r.client.Status()
 							err = statusWriter.Update(context.TODO(), instance)
-							// err = r.client.Update(context.TODO(), instance)
 							if err != nil {
-								reqLogger.Error(err, "Failed to update CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+								err = r.client.Update(context.TODO(), instance)
+								if err != nil {
+									reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+								} else {
+									reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+								}
 							} else {
 								reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							}

@@ -200,7 +200,9 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 								reqLogger.Error(err, "Failed to find config map", "configMap.Namespace", configMap.Namespace, "configMap.Name", configMap.Name)
 							} else {
 								reqLogger.Info("Config map found", "configMap.Namespace", configMap.Namespace, "configMap.Name", configMap.Name)
-								configMap.Data = make(map[string]string)
+								if configMap.Data == nil {
+									configMap.Data = make(map[string]string)
+								}
 								configMap.Data[instance.Name+"_"+time.Now().Format("2006-01-02_150405")+".json"] = json
 								reqLogger.Info("Updating config map", "configMap.Namespace", configMap.Namespace, "configMap.Name", configMap.Name)
 								err = r.client.Update(context.TODO(), configMap)

@@ -60,6 +60,11 @@ type LoadTestList struct {
 	Items           []LoadTest `json:"items"`
 }
 
+// isFailed satisfies Test interface
+//func (l LoadTest) isFailed() bool {
+//	return false
+//}
+
 func init() {
 	SchemeBuilder.Register(&LoadTest{}, &LoadTestList{})
 }

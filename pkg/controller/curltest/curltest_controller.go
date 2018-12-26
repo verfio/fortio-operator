@@ -214,7 +214,7 @@ func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + strings.ToLower(cr.TypeMeta.Kind) + "-job",
+			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-job",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},

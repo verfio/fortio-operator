@@ -208,6 +208,8 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 								err = r.client.Update(context.TODO(), configMap)
 								if err != nil {
 									reqLogger.Error(err, "Failed to update config map", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+								} else {
+									reqLogger.Info("Successfully updated config map", "configMap.Namespace", configMap.Namespace, "configMap.Name", configMap.Name)
 								}
 							}
 						}
@@ -253,7 +255,7 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + strings.ToLower(cr.TypeMeta.Kind) + "-job",
+			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-job",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},

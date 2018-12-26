@@ -99,15 +99,13 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	// Get the list of LoadTests and 
-//	loadtests := instance.Spec.LoadTests
-//	for _, l := range loadtests {
-//		loadtest := newLoadTestForCR(instance)
-//	}
+	// Get the list of LoadTests and
+	//	loadtests := instance.Spec.LoadTests
+	//	for _, l := range loadtests {
+	//		loadtest := newLoadTestForCR(instance)
+	//	}
 
-
-
-//	curltest := instance.Spec.CurlTests
+	//	curltest := instance.Spec.CurlTests
 	// Define a new Pod object
 	test := newLoadTestForCR(instance.Spec.LoadTests[0])
 
@@ -139,14 +137,14 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 
 // newPodForCR returns a busybox pod with the same name/namespace as the cr
 func newLoadTestForCR(cr fortiov1alpha1.LoadTestSpec) *fortiov1alpha1.LoadTest {
-//	loadtests := cr.Spec.LoadTest
-//	for _, l := range loadtests { 
-//	l := loadtests[0]
+	//	loadtests := cr.Spec.LoadTest
+	//	for _, l := range loadtests {
+	//	l := loadtests[0]
 	if cr.Action == "load" {
 		reqLogger := log.WithValues("action", cr.Action, "duration", cr.Duration)
 		reqLogger.Info("Load Test detected")
-		}
-//	}
+	}
+	//	}
 	labels := map[string]string{
 		"app": "verfio",
 	}
@@ -157,15 +155,15 @@ func newLoadTestForCR(cr fortiov1alpha1.LoadTestSpec) *fortiov1alpha1.LoadTest {
 			Labels:    labels,
 		},
 		Spec: fortiov1alpha1.LoadTestSpec{
-			URL:		cr.URL,
-			Duration:	cr.Duration,
-//			Containers: []corev1.Container{
-//				{
-//					Name:    "busybox",
-//					Image:   "busybox",
-//					Command: []string{"sleep", "3600"},
-//				},
-//			},
+			URL:      cr.URL,
+			Duration: cr.Duration,
+			//			Containers: []corev1.Container{
+			//				{
+			//					Name:    "busybox",
+			//					Image:   "busybox",
+			//					Command: []string{"sleep", "3600"},
+			//				},
+			//			},
 		},
 	}
 }

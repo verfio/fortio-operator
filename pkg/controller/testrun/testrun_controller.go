@@ -135,7 +135,6 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	for _, o := range order {
 		spec := make(map[string]string)
-		reqLogger.Info("Spec as []byte: " + string(tests[o]))
 		err := json.Unmarshal(tests[o], &spec)
 		if err != nil {
 			reqLogger.Error(err, "Can't unmarshal spec into map")
@@ -155,11 +154,11 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 				reqLogger.Info("Creating a new CurlTest", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 				err = r.client.Create(context.TODO(), test)
 				if err != nil {
-					reqLogger.Info("Error creating new test", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					reqLogger.Error(err, "Error creating new test", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 					break
 				}
 			} else if err != nil {
-				reqLogger.Info("Error verifying if test already exist", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				reqLogger.Error(err, "Error verifying if test already exist", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 				break
 			}
 			for true {
@@ -169,7 +168,7 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 					time.Sleep(time.Second * 10)
 					continue
 				} else if err != nil {
-					reqLogger.Info("Error verifying if test already exist - during loop", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					reqLogger.Error(err, "Error verifying if test already exist - during loop", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 					break
 				}
 				if found.Status.Condition.Result == "" {
@@ -198,11 +197,11 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 				reqLogger.Info("Creating a new LoadTest", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 				err = r.client.Create(context.TODO(), test)
 				if err != nil {
-					reqLogger.Info("Error creating new test", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					reqLogger.Error(err, "Error creating new test", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 					break
 				}
 			} else if err != nil {
-				reqLogger.Info("Error verifying if test already exist", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				reqLogger.Error(err, "Error verifying if test already exist", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 				break
 			}
 			for true {
@@ -212,7 +211,7 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 					time.Sleep(time.Second * 10)
 					continue
 				} else if err != nil {
-					reqLogger.Info("Error verifying if test already exist - during loop", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					reqLogger.Error(err, "Error verifying if test already exist - during loop", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 					break
 				}
 				if found.Status.Condition.Result == "" {

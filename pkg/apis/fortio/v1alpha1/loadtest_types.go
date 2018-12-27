@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -9,21 +11,23 @@ import (
 
 // LoadTestSpec defines the desired state of LoadTest
 type LoadTestSpec struct {
-	URL      string `json:"url"`
-	Duration string `json:"duration"`
-	Header   string `json:"header"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	QPS      string `json:"qps"`
-	Threads  string `json:"threads"`
-	Action   string `json:"action"`
+	URL           string `json:"url"`
+	Duration      string `json:"duration"`
+	Header        string `json:"header"`
+	User          string `json:"user"`
+	Password      string `json:"password"`
+	QPS           string `json:"qps"`
+	Threads       string `json:"threads"`
+	Action        string `json:"action"`
+	Order         string `json:"order"`
+	StopOnFailure string `json:"stopOnFailure"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
 
 // LoadTestStatus defines the observed state of LoadTest
 type LoadTestStatus struct {
-	Condition []LoadTestCondition `json:"condition"`
+	Condition LoadTestCondition `json:"condition"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
@@ -37,6 +41,7 @@ type LoadTestCondition struct {
 	Target999 string `json:"99.9%"`
 	RespTime  string `json:"avg"`
 	QPS       string `json:"qps"`
+	Result    string `json:"result"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -67,4 +72,12 @@ type LoadTestList struct {
 
 func init() {
 	SchemeBuilder.Register(&LoadTest{}, &LoadTestList{})
+}
+
+func (l *LoadTestSpec) GetSpec() []byte {
+	s, err := json.Marshal(l)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	return s
 }

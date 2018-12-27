@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -12,20 +14,23 @@ type CurlTestSpec struct {
 	URL           string `json:"url"`
 	WaitForCode   string `json:"waitForCode"`
 	LookForString string `json:"lookForString"`
+	Order         string `json:"order"`
+	StopOnFailure string `json:"stopOnFailure"`
+	Action        string `json:"action"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
 
 // CurlTestStatus defines the observed state of CurlTest
 type CurlTestStatus struct {
-	Condition []CurlTestCondition `json:"condition"`
+	Condition CurlTestCondition `json:"condition"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
 
 // CurlTestCondition defines one item of Condition in CurlTestStatus
 type CurlTestCondition struct {
-	Result string `json:"Result"`
+	Result string `json:"result"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -51,4 +56,12 @@ type CurlTestList struct {
 
 func init() {
 	SchemeBuilder.Register(&CurlTest{}, &CurlTestList{})
+}
+
+func (c CurlTestSpec) GetSpec() []byte {
+	s, err := json.Marshal(c)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	return s
 }

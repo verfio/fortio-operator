@@ -2,6 +2,11 @@ package testrun
 
 import (
 	"context"
+	"encoding/json"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -99,71 +104,184 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	// Get the list of LoadTests and
-	//	loadtests := instance.Spec.LoadTests
-	//	for _, l := range loadtests {
-	//		loadtest := newLoadTestForCR(instance)
-	//	}
-
-	//	curltest := instance.Spec.CurlTests
-	// Define a new Pod object
-	test := newLoadTestForCR(instance.Spec.LoadTests[0])
-
-	// Set TestRun instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, test, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Check if this LoadTest already exists
-	found := &fortiov1alpha1.LoadTest{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: test.Name, Namespace: test.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Test", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
-		err = r.client.Create(context.TODO(), test)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		return reconcile.Result{}, err
-	}
-
 	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Test already exists", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
+	if instance.Status.Result == "Finished" {
+		reqLogger.Info("Skip reconcile: Test already finished", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		return reconcile.Result{}, nil
+	}
+
+	// Create a map for holding order number and name of the test
+	tests := make(map[int][]byte)
+
+	// Create a slice of order numbers to range over it below
+	order := make([]int, 0)
+
+	// Range all curltests and get them into map
+	for _, c := range instance.Spec.CurlTests {
+		i, _ := strconv.Atoi(c.Order)
+		tests[i] = c.GetSpec()
+		order = append(order, i)
+	}
+
+	// Range all loadtests and get them into map
+	for _, l := range instance.Spec.LoadTests {
+		i, _ := strconv.Atoi(l.Order)
+		tests[i] = l.GetSpec()
+		order = append(order, i)
+	}
+
+	// Sorting order in increasing order(ASC)
+	sort.Ints(order)
+
+	for _, o := range order {
+		spec := make(map[string]string)
+		err := json.Unmarshal(tests[o], &spec)
+		if err != nil {
+			reqLogger.Error(err, "Can't unmarshal spec into map")
+			break
+		}
+		if spec["action"] == "curl" {
+			test := newCurlTestCR(instance, spec, o)
+			// Set TestRun instance as the owner and controller
+			if err := controllerutil.SetControllerReference(instance, test, r.scheme); err != nil {
+				reqLogger.Info("Error setting ControllerReference", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				break
+			}
+			// Check if this CurlTest already exists
+			found := &fortiov1alpha1.CurlTest{}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: test.Name, Namespace: test.Namespace}, found)
+			if err != nil && errors.IsNotFound(err) {
+				reqLogger.Info("Creating a new CurlTest", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				err = r.client.Create(context.TODO(), test)
+				if err != nil {
+					reqLogger.Error(err, "Error creating new test", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
+				}
+			} else if err != nil {
+				reqLogger.Error(err, "Error verifying if test already exist", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				break
+			}
+			for true {
+				err = r.client.Get(context.TODO(), types.NamespacedName{Name: test.Name, Namespace: test.Namespace}, found)
+				if err != nil && errors.IsNotFound(err) {
+					reqLogger.Info("Test is not yet created. Waiting for 10s.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					time.Sleep(time.Second * 10)
+					continue
+				} else if err != nil {
+					reqLogger.Error(err, "Error verifying if test already exist - during loop", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
+				}
+				if found.Status.Condition.Result == "" {
+					reqLogger.Info("Test is not yet finished. Waiting for 10s.", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
+					time.Sleep(time.Second * 10)
+					continue
+				} else if found.Status.Condition.Result == "Success" {
+					reqLogger.Info("Test successfully finished.", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
+					break
+				} else if found.Status.Condition.Result == "Failure" {
+					reqLogger.Info("Test failed.", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
+					break
+				}
+			}
+		} else if spec["action"] == "load" {
+			test := newLoadTestCR(instance, spec, o)
+			// Set TestRun instance as the owner and controller
+			if err := controllerutil.SetControllerReference(instance, test, r.scheme); err != nil {
+				reqLogger.Info("Error setting ControllerReference", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				break
+			}
+			// Check if this LoadTest already exists
+			found := &fortiov1alpha1.LoadTest{}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: test.Name, Namespace: test.Namespace}, found)
+			if err != nil && errors.IsNotFound(err) {
+				reqLogger.Info("Creating a new LoadTest", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				err = r.client.Create(context.TODO(), test)
+				if err != nil {
+					reqLogger.Error(err, "Error creating new test", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
+				}
+			} else if err != nil {
+				reqLogger.Error(err, "Error verifying if test already exist", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				break
+			}
+			for true {
+				err = r.client.Get(context.TODO(), types.NamespacedName{Name: test.Name, Namespace: test.Namespace}, found)
+				if err != nil && errors.IsNotFound(err) {
+					reqLogger.Info("Test is not yet created. Waiting for 10s.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					time.Sleep(time.Second * 10)
+					continue
+				} else if err != nil {
+					reqLogger.Error(err, "Error verifying if test already exist - during loop", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
+				}
+				if found.Status.Condition.Result == "" {
+					reqLogger.Info("Test is not yet finished. Waiting for 10s.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					time.Sleep(time.Second * 10)
+					continue
+				} else if found.Status.Condition.Result == "Success" {
+					reqLogger.Info("Test successfully finished.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
+				} else if found.Status.Condition.Result == "Failure" {
+					reqLogger.Info("Test failed.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
+				}
+			}
+		} else {
+			reqLogger.Info("Unrecognized action. Ignoring.")
+			continue
+		}
+	}
+	// Finishing after all tests ran
+	instance.Status.Result = "Finished"
+	statusWriter := r.client.Status()
+	err = statusWriter.Update(context.TODO(), instance)
+	if err != nil {
+		err = r.client.Update(context.TODO(), instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		} else {
+			reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		}
+	} else {
+		reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+	}
+	reqLogger.Info("Finished reconciling cycle", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 	return reconcile.Result{}, nil
 }
 
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newLoadTestForCR(cr fortiov1alpha1.LoadTestSpec) *fortiov1alpha1.LoadTest {
-	//	loadtests := cr.Spec.LoadTest
-	//	for _, l := range loadtests {
-	//	l := loadtests[0]
-	if cr.Action == "load" {
-		reqLogger := log.WithValues("action", cr.Action, "duration", cr.Duration)
-		reqLogger.Info("Load Test detected")
-	}
-	//	}
+func newCurlTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int) *fortiov1alpha1.CurlTest {
 	labels := map[string]string{
-		"app": "verfio",
+		"app": cr.Name,
 	}
+	o := strconv.Itoa(order)
+	return &fortiov1alpha1.CurlTest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"] + "-test",
+			Namespace: cr.Namespace,
+			Labels:    labels,
+		},
+		Spec: fortiov1alpha1.CurlTestSpec{
+			URL:           spec["url"],
+			LookForString: spec["lookForString"],
+		},
+	}
+}
+
+func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int) *fortiov1alpha1.LoadTest {
+	labels := map[string]string{
+		"app": cr.Name,
+	}
+	o := strconv.Itoa(order)
 	return &fortiov1alpha1.LoadTest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verfio" + "-test",
-			Namespace: "default",
+			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"] + "-test",
+			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
 		Spec: fortiov1alpha1.LoadTestSpec{
-			URL:      cr.URL,
-			Duration: cr.Duration,
-			//			Containers: []corev1.Container{
-			//				{
-			//					Name:    "busybox",
-			//					Image:   "busybox",
-			//					Command: []string{"sleep", "3600"},
-			//				},
-			//			},
+			URL:      spec["url"],
+			Duration: spec["duration"],
+			Action:   spec["action"],
 		},
 	}
 }

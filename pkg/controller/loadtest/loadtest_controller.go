@@ -311,28 +311,27 @@ func getPodLogs(pod corev1.Pod) string {
 
 func writeConditionsFromLogs(instance *fortiov1alpha1.LoadTest, logs string) {
 	parsedLogs := strings.Fields(logs)
-	condition := &fortiov1alpha1.LoadTestCondition{}
 
 	for i, word := range parsedLogs {
 		switch word {
 		case "50%":
-			condition.Target50 = parsedLogs[i+1]
+			instance.Status.Condition.Target50 = parsedLogs[i+1]
 		case "75%":
-			condition.Target75 = parsedLogs[i+1]
+			instance.Status.Condition.Target75 = parsedLogs[i+1]
 		case "90%":
-			condition.Target90 = parsedLogs[i+1]
+			instance.Status.Condition.Target90 = parsedLogs[i+1]
 		case "99%":
-			condition.Target99 = parsedLogs[i+1]
+			instance.Status.Condition.Target99 = parsedLogs[i+1]
 		case "99.9%":
-			condition.Target999 = parsedLogs[i+1]
+			instance.Status.Condition.Target999 = parsedLogs[i+1]
 		case "warmup)":
-			condition.RespTime = parsedLogs[i+1] + parsedLogs[i+2]
+			instance.Status.Condition.RespTime = parsedLogs[i+1] + parsedLogs[i+2]
 		}
 		if strings.Contains(word, "qps=") {
-			condition.QPS = word[4:]
+			instance.Status.Condition.QPS = word[4:]
 		}
 	}
-	instance.Status.Condition = append(instance.Status.Condition, *condition)
+	instance.Status.Condition.Result = "Success"
 }
 
 func getJSONfromLog(log string) string {

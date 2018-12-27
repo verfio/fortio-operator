@@ -253,9 +253,10 @@ func newCurlTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 	labels := map[string]string{
 		"app": cr.Name,
 	}
+	o := strconv.Itoa(order)
 	return &fortiov1alpha1.CurlTest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + string(order) + spec["action"] + "-test",
+			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"] + "-test",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
@@ -270,9 +271,10 @@ func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 	labels := map[string]string{
 		"app": cr.Name,
 	}
+	o := strconv.Itoa(order)
 	return &fortiov1alpha1.LoadTest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + string(order) + spec["action"] + "-test",
+			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"] + "-test",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},

@@ -244,7 +244,7 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs string) {
 			instance.Status.Condition.Result = "Success"
 		}
 	}
-	if condition.Result == "" {
+	if instance.Status.Condition.Result == "" {
 		instance.Status.Condition.Result = "Failure"
 	}
 }

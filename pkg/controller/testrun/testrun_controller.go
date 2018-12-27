@@ -134,7 +134,8 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 		spec := make(map[string]string)
 		err := json.Unmarshal(tests[o], spec)
 		if err != nil {
-			reqLogger.Info("Can't unmarshal spen into map")
+			reqLogger.Error(err, "Can't unmarshal spec into map")
+			break
 		}
 		if spec["action"] == "curl" {
 			test := newCurlTestCR(instance, spec, o)

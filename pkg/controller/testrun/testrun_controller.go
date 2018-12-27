@@ -102,30 +102,17 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	// Get the list of LoadTests and
-	//	loadtests := instance.Spec.LoadTests
-	//	for _, l := range loadtests {
-	//		loadtest := newLoadTestForCR(instance)
-	//	}
-
-	//	curltest := instance.Spec.CurlTests
+	// Pod already exists - don't requeue
+	if instance.Status.Result == "Success"{
+		reqLogger.Info("Skip reconcile: Test already exists", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
+		return reconcile.Result{}, nil
+	}
 
 	// Create a map for holding order number and name of the test
 	tests := make(map[int][]byte)
 
 	// Create a slice of order numbers to range over it below
 	order := make([]int, 0)
-
-	// TO DO:
-	// Write one func which will use spec interface and will write to "tests" map and "order" slice - done
-	// Range over order and map
-	// Try to Unmarshall []byte into curl spec
-	// If failed - then Unmarshall it into load spec
-	// When successful - create new CR using this spec and wait until it finishes
-	// Verify its result - if success - continue
-	// If failed - verify StopOnFailure
-	// If true - break
-	// If false - continue
 
 	// Range all curltests and get them into map
 	for _, c := range instance.Spec.CurlTests {
@@ -230,13 +217,7 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 			reqLogger.Info("Unrecognized action. Ignoring.")
 			continue
 		}
-	}
-	
-	
-
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Test already exists", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
-	return reconcile.Result{}, nil
+	}	
 }
 
 func newCurlTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int) *fortiov1alpha1.CurlTest {

@@ -30,7 +30,7 @@ type CurlTestStatus struct {
 
 // CurlTestCondition defines one item of Condition in CurlTestStatus
 type CurlTestCondition struct {
-	Result string `json:"Result"`
+	Result string `json:"result"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

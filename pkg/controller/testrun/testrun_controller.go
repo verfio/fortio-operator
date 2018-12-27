@@ -154,7 +154,7 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 			if err := controllerutil.SetControllerReference(instance, test, r.scheme); err != nil {
 				return reconcile.Result{}, err
 			}
-			// Check if this LoadTest already exists
+			// Check if this CurlTest already exists
 			found := &fortiov1alpha1.CurlTest{}
 			err = r.client.Get(context.TODO(), types.NamespacedName{Name: test.Name, Namespace: test.Namespace}, found)
 			if err != nil && errors.IsNotFound(err) {
@@ -194,7 +194,7 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 				return reconcile.Result{}, err
 			}
 			// Check if this LoadTest already exists
-			found := &fortiov1alpha1.CurlTest{}
+			found := &fortiov1alpha1.LoadTest{}
 			err = r.client.Get(context.TODO(), types.NamespacedName{Name: test.Name, Namespace: test.Namespace}, found)
 			if err != nil && errors.IsNotFound(err) {
 				reqLogger.Info("Creating a new LoadTest", "Test.Namespace", test.Namespace, "Test.Name", test.Name)

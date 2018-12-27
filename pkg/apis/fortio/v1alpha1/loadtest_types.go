@@ -11,15 +11,16 @@ import (
 
 // LoadTestSpec defines the desired state of LoadTest
 type LoadTestSpec struct {
-	URL      string `json:"url"`
-	Duration string `json:"duration"`
-	Header   string `json:"header"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	QPS      string `json:"qps"`
-	Threads  string `json:"threads"`
-	Action   string `json:"action"`
-	Order    int    `json:"order"`
+	URL           string `json:"url"`
+	Duration      string `json:"duration"`
+	Header        string `json:"header"`
+	User          string `json:"user"`
+	Password      string `json:"password"`
+	QPS           string `json:"qps"`
+	Threads       string `json:"threads"`
+	Action        string `json:"action"`
+	Order         int    `json:"order"`
+	StopOnFailure bool   `json:"stopOnFailure"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }

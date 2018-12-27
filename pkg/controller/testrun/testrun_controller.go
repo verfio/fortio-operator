@@ -114,25 +114,40 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	//	curltest := instance.Spec.CurlTests
 
 	// Create a map for holding order number and name of the test
-	tests := make(map[int]string)
+	tests := make(map[int][]byte)
 
 	// Create a slice of order numbers to range over it below
 	order := make([]int, 0)
 
+	// TO DO:
+	// Write one func which will use spec interface and will write to "tests" map and "order" slice
+	// Range over order and map
+	// Try to Unmarshall []byte into curl spec
+	// If failed - then Unmarshall it into load spec
+	// When successful - create new CR using this spec and wait until it finishes
+	// Verify its result - if success - continue
+	// If failed - verify StopOnFailure
+	// If true - break
+	// If false - continue
+
 	// Range all curltests and get them into map
 	for _, c := range instance.Spec.CurlTests {
-		tests[c.Order] = "name"
+		tests[c.Order] = []byte("name")
 		order = append(order, c.Order)
 	}
 
 	// Range all loadtests and get them into map
 	for _, l := range instance.Spec.LoadTests {
-		tests[l.Order] = "name"
+		tests[l.Order] = []byte("name")
 		order = append(order, l.Order)
 	}
 
 	// Sorting order in increasing order(ASC)
 	sort.Ints(order)
+
+	for _, _ = range order {
+
+	}
 
 	// Define a new Pod object
 	test := newLoadTestForCR(instance.Spec.LoadTests[0])

@@ -15,6 +15,7 @@ type CurlTestSpec struct {
 	WaitForCode   string `json:"waitForCode"`
 	LookForString string `json:"lookForString"`
 	Order         int    `json:"order"`
+	StopOnFailure bool   `json:"stopOnFailure"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }

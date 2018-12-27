@@ -132,7 +132,7 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	for _, o := range order {
 		spec := make(map[string]string)
-		err := json.Unmarshal(tests[o], spec)
+		err := json.Unmarshal(tests[o], &spec)
 		if err != nil {
 			reqLogger.Error(err, "Can't unmarshal spec into map")
 			break

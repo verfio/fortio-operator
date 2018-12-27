@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -17,6 +19,7 @@ type LoadTestSpec struct {
 	QPS      string `json:"qps"`
 	Threads  string `json:"threads"`
 	Action   string `json:"action"`
+	Order    int    `json:"order"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
@@ -67,4 +70,12 @@ type LoadTestList struct {
 
 func init() {
 	SchemeBuilder.Register(&LoadTest{}, &LoadTestList{})
+}
+
+func (l *LoadTestSpec) getSpec() []byte {
+	s, err := json.Marshal(l)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	return s
 }

@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -12,6 +14,7 @@ type CurlTestSpec struct {
 	URL           string `json:"url"`
 	WaitForCode   string `json:"waitForCode"`
 	LookForString string `json:"lookForString"`
+	Order         int    `json:"order"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
@@ -51,4 +54,12 @@ type CurlTestList struct {
 
 func init() {
 	SchemeBuilder.Register(&CurlTest{}, &CurlTestList{})
+}
+
+func (c *CurlTestSpec) getSpec() []byte {
+	s, err := json.Marshal(c)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	return s
 }

@@ -2,6 +2,7 @@ package testrun
 
 import (
 	"context"
+	"sort"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,6 +21,11 @@ import (
 )
 
 var log = logf.Log.WithName("controller_testrun")
+
+// interface for specs - should return spec as json in array of bytes
+type spec interface {
+	getSpec() []byte
+}
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -106,6 +112,28 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	//	}
 
 	//	curltest := instance.Spec.CurlTests
+
+	// Create a map for holding order number and name of the test
+	tests := make(map[int]string)
+
+	// Create a slice of order numbers to range over it below
+	order := make([]int, 0)
+
+	// Range all curltests and get them into map
+	for _, c := range instance.Spec.CurlTests {
+		tests[c.Order] = "name"
+		order = append(order, c.Order)
+	}
+
+	// Range all loadtests and get them into map
+	for _, l := range instance.Spec.LoadTests {
+		tests[l.Order] = "name"
+		order = append(order, l.Order)
+	}
+
+	// Sorting order in increasing order(ASC)
+	sort.Ints(order)
+
 	// Define a new Pod object
 	test := newLoadTestForCR(instance.Spec.LoadTests[0])
 

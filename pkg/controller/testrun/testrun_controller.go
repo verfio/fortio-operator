@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -117,14 +118,16 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	// Range all curltests and get them into map
 	for _, c := range instance.Spec.CurlTests {
-		tests[c.Order] = c.GetSpec()
-		order = append(order, c.Order)
+		i, _ := strconv.Atoi(c.Order)
+		tests[i] = c.GetSpec()
+		order = append(order, i)
 	}
 
 	// Range all loadtests and get them into map
 	for _, l := range instance.Spec.LoadTests {
-		tests[l.Order] = l.GetSpec()
-		order = append(order, l.Order)
+		i, _ := strconv.Atoi(l.Order)
+		tests[i] = l.GetSpec()
+		order = append(order, i)
 	}
 
 	// Sorting order in increasing order(ASC)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strings"
+	"time"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -103,8 +104,8 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	// Pod already exists - don't requeue
-	if instance.Status.Result == "Success"{
-		reqLogger.Info("Skip reconcile: Test already exists", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
+	if instance.Status.Result == "Finished" {
+		reqLogger.Info("Skip reconcile: Test already finished", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 		return reconcile.Result{}, nil
 	}
 
@@ -139,7 +140,8 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 			test := newCurlTestCR(instance, spec, o)
 			// Set TestRun instance as the owner and controller
 			if err := controllerutil.SetControllerReference(instance, test, r.scheme); err != nil {
-				return reconcile.Result{}, err
+				reqLogger.Info("Error setting ControllerReference", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				break
 			}
 			// Check if this CurlTest already exists
 			found := &fortiov1alpha1.CurlTest{}
@@ -148,10 +150,12 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 				reqLogger.Info("Creating a new CurlTest", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 				err = r.client.Create(context.TODO(), test)
 				if err != nil {
-					return reconcile.Result{}, err
+					reqLogger.Info("Error creating new test", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
 				}
 			} else if err != nil {
-				return reconcile.Result{}, err
+				reqLogger.Info("Error verifying if test already exist", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				break
 			}
 			for true {
 				err = r.client.Get(context.TODO(), types.NamespacedName{Name: test.Name, Namespace: test.Namespace}, found)
@@ -160,25 +164,27 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 					time.Sleep(time.Second * 10)
 					continue
 				} else if err != nil {
-					return reconcile.Result{}, err
+					reqLogger.Info("Error verifying if test already exist - during loop", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
 				}
-				if found.Status.Condition.Result == nil {
-					reqLogger.Info("Test is not yet finished. Waiting for 10s.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				if found.Status.Condition.Result == "" {
+					reqLogger.Info("Test is not yet finished. Waiting for 10s.", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
 					time.Sleep(time.Second * 10)
 					continue
 				} else if found.Status.Condition.Result == "Success" {
-					reqLogger.Info("Test successfully finished.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					reqLogger.Info("Test successfully finished.", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
 					break
 				} else if found.Status.Condition.Result == "Failure" {
-					reqLogger.Info("Test failed.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					reqLogger.Info("Test failed.", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
 					break
 				}
 			}
 		} else if spec["action"] == "load" {
-			test := newLoadTestCR(instance, spec,  o)
+			test := newLoadTestCR(instance, spec, o)
 			// Set TestRun instance as the owner and controller
 			if err := controllerutil.SetControllerReference(instance, test, r.scheme); err != nil {
-				return reconcile.Result{}, err
+				reqLogger.Info("Error setting ControllerReference", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				break
 			}
 			// Check if this LoadTest already exists
 			found := &fortiov1alpha1.LoadTest{}
@@ -187,10 +193,12 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 				reqLogger.Info("Creating a new LoadTest", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 				err = r.client.Create(context.TODO(), test)
 				if err != nil {
-					return reconcile.Result{}, err
+					reqLogger.Info("Error creating new test", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
 				}
 			} else if err != nil {
-				return reconcile.Result{}, err
+				reqLogger.Info("Error verifying if test already exist", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+				break
 			}
 			for true {
 				err = r.client.Get(context.TODO(), types.NamespacedName{Name: test.Name, Namespace: test.Namespace}, found)
@@ -199,9 +207,10 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 					time.Sleep(time.Second * 10)
 					continue
 				} else if err != nil {
-					return reconcile.Result{}, err
+					reqLogger.Info("Error verifying if test already exist - during loop", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					break
 				}
-				if found.Status.Condition.Result == nil {
+				if found.Status.Condition.Result == "" {
 					reqLogger.Info("Test is not yet finished. Waiting for 10s.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
 					time.Sleep(time.Second * 10)
 					continue
@@ -217,7 +226,23 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 			reqLogger.Info("Unrecognized action. Ignoring.")
 			continue
 		}
-	}	
+	}
+	// Finishing after all tests ran
+	instance.Status.Result = "Finished"
+	statusWriter := r.client.Status()
+	err = statusWriter.Update(context.TODO(), instance)
+	if err != nil {
+		err = r.client.Update(context.TODO(), instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		} else {
+			reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		}
+	} else {
+		reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+	}
+	reqLogger.Info("Finished reconciling cycle", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+	return reconcile.Result{}, nil
 }
 
 func newCurlTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int) *fortiov1alpha1.CurlTest {
@@ -247,10 +272,10 @@ func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
-		Spec: fortiov1alpha1LoadTestSpec{
-			URL:           spec["url"],
+		Spec: fortiov1alpha1.LoadTestSpec{
+			URL:      spec["url"],
 			Duration: spec["duration"],
-			Action: spec["action"],
+			Action:   spec["action"],
 		},
 	}
 }

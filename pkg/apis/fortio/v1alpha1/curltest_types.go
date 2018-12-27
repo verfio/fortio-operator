@@ -16,13 +16,14 @@ type CurlTestSpec struct {
 	LookForString string `json:"lookForString"`
 	Order         int    `json:"order"`
 	StopOnFailure bool   `json:"stopOnFailure"`
+	Action        string `json:"action"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
 
 // CurlTestStatus defines the observed state of CurlTest
 type CurlTestStatus struct {
-	Condition []CurlTestCondition `json:"condition"`
+	Condition CurlTestCondition `json:"condition"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
@@ -57,7 +58,7 @@ func init() {
 	SchemeBuilder.Register(&CurlTest{}, &CurlTestList{})
 }
 
-func (c *CurlTestSpec) getSpec() []byte {
+func (c CurlTestSpec) GetSpec() []byte {
 	s, err := json.Marshal(c)
 	if err != nil {
 		return []byte(err.Error())

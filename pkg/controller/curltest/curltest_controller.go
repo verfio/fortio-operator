@@ -202,7 +202,7 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 }
 
 func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
-	backoffLimit := int32(4)
+	backoffLimit := int32(1)
 	labels := map[string]string{
 		"app": cr.Name,
 	}
@@ -238,17 +238,15 @@ func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
 
 func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs string) {
 	parsedLogs := strings.Fields(logs)
-	condition := &fortiov1alpha1.CurlTestCondition{}
 
 	for _, word := range parsedLogs {
 		if strings.Contains(word, instance.Spec.LookForString) {
-			condition.Result = "Success: " + word + " found in the code of requested web-page"
+			instance.Status.Condition.Result = "Success"
 		}
 	}
 	if condition.Result == "" {
-		condition.Result = "Failure: " + instance.Spec.LookForString + " is not found in the code of requested web-page"
+		instance.Status.Condition.Result = "Failure"
 	}
-	instance.Status.Condition = append(instance.Status.Condition, *condition)
 }
 
 func getPodLogs(pod corev1.Pod) string {

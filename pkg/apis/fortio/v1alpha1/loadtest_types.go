@@ -19,8 +19,8 @@ type LoadTestSpec struct {
 	QPS           string `json:"qps"`
 	Threads       string `json:"threads"`
 	Action        string `json:"action"`
-	Order         int    `json:"order"`
-	StopOnFailure bool   `json:"stopOnFailure"`
+	Order         string `json:"order"`
+	StopOnFailure string `json:"stopOnFailure"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }

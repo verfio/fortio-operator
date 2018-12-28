@@ -17,6 +17,7 @@ import (
 //
 //}
 
+// TestRunSpec defines the desired state of TestRun
 type TestRunSpec struct {
 	//	StopOnFailure	bool	`json:"stopOnFailure"`
 	//	Items	[]runtime.Object  `json:"items"`

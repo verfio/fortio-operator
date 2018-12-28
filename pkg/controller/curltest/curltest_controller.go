@@ -202,7 +202,7 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 }
 
 func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
-	backoffLimit := int32(1)
+	backoffLimit := int32(0)
 	labels := map[string]string{
 		"app": cr.Name,
 	}

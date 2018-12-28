@@ -11,15 +11,19 @@ import (
 
 // LoadTestSpec defines the desired state of LoadTest
 type LoadTestSpec struct {
-	URL           string `json:"url"`
-	Duration      string `json:"duration"`
-	Header        string `json:"header"`
-	User          string `json:"user"`
-	Password      string `json:"password"`
-	QPS           string `json:"qps"`
-	Threads       string `json:"threads"`
+	URL         string `json:"url"`
+	Duration    string `json:"duration"`
+	Header      string `json:"header"`
+	User        string `json:"user"`
+	Password    string `json:"password"`
+	QPS         string `json:"qps"`
+	Threads     string `json:"threads"`
+	Method      string `json:"method"`
+	ContentType string `json:"contentType"`
+	// parameters for TestRun
+	Action        string `json:"action"`
 	Order         string `json:"order"`
-	StopOnFailure string `json:"stopOnFailure"`
+	StopOnFailure string `json:"stopOnFailure"` // not implemented yet
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
@@ -63,11 +67,6 @@ type LoadTestList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []LoadTest `json:"items"`
 }
-
-// isFailed satisfies Test interface
-//func (l LoadTest) isFailed() bool {
-//	return false
-//}
 
 func init() {
 	SchemeBuilder.Register(&LoadTest{}, &LoadTestList{})

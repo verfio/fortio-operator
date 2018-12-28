@@ -12,10 +12,14 @@ import (
 // CurlTestSpec defines the desired state of CurlTest
 type CurlTestSpec struct {
 	URL           string `json:"url"`
-	WaitForCode   string `json:"waitForCode"`
+	WaitForCode   string `json:"waitForCode"` // not implemented yet
 	LookForString string `json:"lookForString"`
+	Method        string `json:"method"`
+	ContentType   string `json:"contentType"`
+	// parameters for TestRun
+	Action        string `json:"action"`
 	Order         string `json:"order"`
-	StopOnFailure string `json:"stopOnFailure"`
+	StopOnFailure string `json:"stopOnFailure"` // not implemented yet
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }

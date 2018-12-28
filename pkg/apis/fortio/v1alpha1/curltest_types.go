@@ -57,6 +57,7 @@ func init() {
 	SchemeBuilder.Register(&CurlTest{}, &CurlTestList{})
 }
 
+// GetSpec returns full CurlTestSpec as json in []byte
 func (c CurlTestSpec) GetSpec() []byte {
 	s, err := json.Marshal(c)
 	if err != nil {

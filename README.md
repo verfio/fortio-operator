@@ -194,7 +194,6 @@ spec:
   - order: "30"
     url: "https://www.verf.io"
     duration: 30s
-    duration: 1m
 ```
 Apply this file 
 ```sh
@@ -208,16 +207,16 @@ NAME                          AGE
 testrun-verfio-10-curl-test   1m
 testrun-verfio-15-curl-test   1m
 ```
-Wait couple minutes and get the list of LoadTest resources:
+Wait a couple of minutes and get the list of LoadTest resources:
 ```sh
 kubectl get loadtest
 NAME                          AGE
 testrun-verfio-20-load-test   1m
 testrun-verfio-30-load-test   1m
 ```
-For each test dedicated pod has been provisioned:
+For each test the dedicated pod was provisioned:
 ```sh
- kubectl get pods
+kubectl get pods
 NAME                                             READY     STATUS      RESTARTS   AGE
 curltest-testrun-verfio-10-curl-test-job-kldl8   0/1       Completed   0          3m
 curltest-testrun-verfio-15-curl-test-job-sjnx7   0/1       Completed   0          2m
@@ -225,7 +224,30 @@ fortio-operator-6f7c799db5-kpfc7                 1/1       Running     0        
 loadtest-testrun-verfio-20-load-test-job-tc6mz   0/1       Completed   0          2m
 loadtest-testrun-verfio-30-load-test-job-x6w8f   0/1       Completed   0          1m
 ```
-To verify the result of each test you can leverage `kubectl describe ...` command against each test.  Also, you can visualize results of LoadTests using the Server resource.
+Let's take a look whether testrun-verfio-30-load-test was successful:
+
+```sh
+kubectl describe loadtest testrun-verfio-30-load-test
+Name:         testrun-verfio-30-load-test
+Namespace:    default
+Labels:       app=verfio
+Annotations:  <none>
+API Version:  fortio.verf.io/v1alpha1
+Kind:         LoadTest
+...
+Status:
+  Condition:
+    50 %:      0.0313991
+    75 %:      0.0341514
+    90 %:      0.0389773
+    99 %:      0.107333
+    99 . 9 %:  0.126325
+    Avg:       34.243ms
+    Qps:       7.9956
+    Result:    Success
+Events:        <none>
+```
+To analyze results provided by various tests, as part of single TestRun, or as separated tests, it could be very useful to visualize them. We can use the Server resource to make it possible.
 
 ## Server
 Run this command to instruct the fortio-operator to spin up the server:

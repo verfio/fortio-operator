@@ -281,7 +281,11 @@ func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 		Spec: fortiov1alpha1.LoadTestSpec{
 			URL:      spec["url"],
 			Duration: spec["duration"],
-			Action:   spec["action"],
+			Header:   spec["header"],
+			User:     spec["user"],
+			Password: spec["password"],
+			QPS:      spec["qps"],
+			Threads:  spec["threads"],
 		},
 	}
 }

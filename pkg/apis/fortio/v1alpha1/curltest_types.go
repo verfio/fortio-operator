@@ -11,11 +11,15 @@ import (
 
 // CurlTestSpec defines the desired state of CurlTest
 type CurlTestSpec struct {
-	URL           string `json:"url"`
-	WaitForCode   string `json:"waitForCode"` // not implemented yet
-	LookForString string `json:"lookForString"`
-	Method        string `json:"method"`
-	ContentType   string `json:"contentType"`
+	URL              string `json:"url"`
+	WaitForCode      string `json:"waitForCode"` // not implemented yet
+	LookForString    string `json:"lookForString"`
+	Method           string `json:"method"`
+	ContentType      string `json:"contentType"`
+	Payload          string `json:"payload"`
+	PayloadSize      string `json:"payloadSize"`
+	MaxPayloadSizeKB string `json:"maxPayloadSizeKB"`
+	PayloadFile      string `json:"payloadFile"`
 	// parameters for TestRun
 	Action        string `json:"action"`
 	Order         string `json:"order"`

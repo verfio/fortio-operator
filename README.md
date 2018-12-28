@@ -196,13 +196,36 @@ spec:
     duration: 30s
     duration: 1m
 ```
-Apply this file and get a list of different resources created by fortio-operator to execute the defined TestRun:
-
+Apply this file 
 ```sh
-kubectl apply -f https://github.com/verfio/fortio-operator/blob/master/deploy/crds/fortio_v1alpha1_testrun_cr.yaml
+kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_testrun_cr.yaml
+testrun.fortio.verf.io "verfio" created
 ```
-
-In order to visualize this data run the Server.
+Wait for a while and verify the list of CurlTest resources:
+```sh
+kubectl get curltest
+NAME                          AGE
+testrun-verfio-10-curl-test   1m
+testrun-verfio-15-curl-test   1m
+```
+Wait couple minutes and get the list of LoadTest resources:
+```sh
+kubectl get loadtest
+NAME                          AGE
+testrun-verfio-20-load-test   1m
+testrun-verfio-30-load-test   1m
+```
+For each test dedicated pod has been provisioned:
+```sh
+ kubectl get pods
+NAME                                             READY     STATUS      RESTARTS   AGE
+curltest-testrun-verfio-10-curl-test-job-kldl8   0/1       Completed   0          3m
+curltest-testrun-verfio-15-curl-test-job-sjnx7   0/1       Completed   0          2m
+fortio-operator-6f7c799db5-kpfc7                 1/1       Running     0          4m
+loadtest-testrun-verfio-20-load-test-job-tc6mz   0/1       Completed   0          2m
+loadtest-testrun-verfio-30-load-test-job-x6w8f   0/1       Completed   0          1m
+```
+To verify the result of each test you can leverage `kubectl describe ...` command against each test.  Also, you can visualize results of LoadTests using the Server resource.
 
 ## Server
 Run this command to instruct the fortio-operator to spin up the server:

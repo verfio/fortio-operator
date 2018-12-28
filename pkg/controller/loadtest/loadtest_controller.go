@@ -229,11 +229,7 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 		"app": cr.Name,
 	}
 
-	command := []string{"fortio"}
-	if cr.Spec.Action != "" {
-		command = append(command, cr.Spec.Action)
-	}
-	command = append(command, "-json", "-")
+	command := []string{"fortio", "load", "-json", "-"}
 	if cr.Spec.Duration != "" {
 		command = append(command, "-t", cr.Spec.Duration)
 	}

@@ -11,14 +11,14 @@ import (
 
 // LoadTestSpec defines the desired state of LoadTest
 type LoadTestSpec struct {
-	URL           string `json:"url"`
-	Duration      string `json:"duration"`
-	Header        string `json:"header"`
-	User          string `json:"user"`
-	Password      string `json:"password"`
-	QPS           string `json:"qps"`
-	Threads       string `json:"threads"`
-	Action        string `json:"action"`
+	URL      string `json:"url"`
+	Duration string `json:"duration"`
+	Header   string `json:"header"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	QPS      string `json:"qps"`
+	Threads  string `json:"threads"`
+	// Action        string `json:"action"`
 	Order         string `json:"order"`
 	StopOnFailure string `json:"stopOnFailure"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster

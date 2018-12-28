@@ -256,16 +256,26 @@ func newCurlTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 		"app": cr.Name,
 	}
 	o := strconv.Itoa(order)
+	curlTestSpec := fortiov1alpha1.CurlTestSpec{}
+	if _, ok := spec["url"]; ok {
+		curlTestSpec.URL = spec["url"]
+	}
+	if _, ok := spec["lookForString"]; ok {
+		curlTestSpec.LookForString = spec["lookForString"]
+	}
+	if _, ok := spec["method"]; ok {
+		curlTestSpec.Method = spec["method"]
+	}
+	if _, ok := spec["contentType"]; ok {
+		curlTestSpec.ContentType = spec["contentType"]
+	}
 	return &fortiov1alpha1.CurlTest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"] + "-test",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
-		Spec: fortiov1alpha1.CurlTestSpec{
-			URL:           spec["url"],
-			LookForString: spec["lookForString"],
-		},
+		Spec: curlTestSpec,
 	}
 }
 
@@ -274,20 +284,40 @@ func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 		"app": cr.Name,
 	}
 	o := strconv.Itoa(order)
+	loadTestSpec := fortiov1alpha1.LoadTestSpec{}
+	if _, ok := spec["url"]; ok {
+		loadTestSpec.URL = spec["url"]
+	}
+	if _, ok := spec["duration"]; ok {
+		loadTestSpec.Duration = spec["duration"]
+	}
+	if _, ok := spec["header"]; ok {
+		loadTestSpec.Header = spec["header"]
+	}
+	if _, ok := spec["user"]; ok {
+		loadTestSpec.User = spec["user"]
+	}
+	if _, ok := spec["password"]; ok {
+		loadTestSpec.Password = spec["password"]
+	}
+	if _, ok := spec["qps"]; ok {
+		loadTestSpec.QPS = spec["qps"]
+	}
+	if _, ok := spec["threads"]; ok {
+		loadTestSpec.Threads = spec["threads"]
+	}
+	if _, ok := spec["method"]; ok {
+		loadTestSpec.Method = spec["method"]
+	}
+	if _, ok := spec["contentType"]; ok {
+		loadTestSpec.ContentType = spec["contentType"]
+	}
 	return &fortiov1alpha1.LoadTest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"] + "-test",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
-		Spec: fortiov1alpha1.LoadTestSpec{
-			URL:      spec["url"],
-			Duration: spec["duration"],
-			Header:   spec["header"],
-			User:     spec["user"],
-			Password: spec["password"],
-			QPS:      spec["qps"],
-			Threads:  spec["threads"],
-		},
+		Spec: loadTestSpec,
 	}
 }

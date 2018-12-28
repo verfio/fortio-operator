@@ -4,16 +4,15 @@ metadata:
   name: verfio
 spec:
   curl:
-  - url: "https://verf.io"
-    order: "10"
-    action: "curl"
+  - order: "10"
+    url: "https://verf.io"
   load:
-  - url: "https://verf.io"
+  - order: "20"
+    url: "https://verf.io"
     duration: 10s
-    order: "20"
-    action: "load"
-  - duration: 20s
+  - order: "30"
     url: "https://www.verf.io"
-    order: "30"
-    action: "load"
-
+    duration: 1m
+  - order: "40"
+    url: "https://www.verf.io"
+    duration: 10m

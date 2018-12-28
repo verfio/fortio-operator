@@ -72,7 +72,7 @@ func init() {
 	SchemeBuilder.Register(&LoadTest{}, &LoadTestList{})
 }
 
-// GetSpec returns full LoadTestSpec as json in []byte
+// GetSpec() returns full LoadTestSpec as json in []byte
 func (l *LoadTestSpec) GetSpec() []byte {
 	s, err := json.Marshal(l)
 	if err != nil {

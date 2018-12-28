@@ -16,4 +16,3 @@ spec:
   - order: "30"
     url: "https://www.verf.io"
     duration: 30s
-    duration: 1m

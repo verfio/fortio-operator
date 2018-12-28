@@ -48,7 +48,7 @@ kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master
 curltest.fortio.verf.io "verfio" created
 ```
 
-Check the result using the descibe command:
+Check the result using the describe command:
 
 ```sh
 kubectl describe curltest
@@ -172,6 +172,30 @@ Status:
 Events:        <none>
 ```
 
+## TestRun
+
+TestRun is suitable in case when you need to define a set of different tests, for example: 
+```yaml
+apiVersion: fortio.verf.io/v1alpha1
+kind: TestRun
+metadata:
+  name: verfio
+spec:
+  curl:
+  - order: "10"
+    url: "https://verf.io"
+  load:
+  - order: "20"
+    url: "https://verf.io"
+    duration: 10s
+  - order: "30"
+    url: "https://www.verf.io"
+    duration: 1m
+  - order: "40"
+    url: "https://www.verf.io"
+    duration: 10m
+```
+
 In order to visualize this data run the Server.
 
 ## Server
@@ -196,11 +220,18 @@ kubectl delete server fortio-server
 server.fortio.verf.io "fortio-server" deleted
 ```
 
+Delete CurlTest
+```sh
+kubectl delete curltest verfio
+curltest.fortio.verf.io "verfio" deleted
+```
+
 Delete LoadTest
 ```sh
 kubectl delete loadtest verfio
 loadtest.fortio.verf.io "verfio" deleted
 ```
+
 
 Delete Operator:
 ```sh

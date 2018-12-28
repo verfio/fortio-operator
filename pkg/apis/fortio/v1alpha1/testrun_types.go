@@ -9,15 +9,6 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // TestRunSpec defines the desired state of TestRun
-
-//type Test interface {
-//	isFailed()  bool
-//	GetObkectKind()  schema.ObjectKind
-//	DeepCopyObject() Object
-//
-//}
-
-// TestRunSpec defines the desired state of TestRun
 type TestRunSpec struct {
 	//	StopOnFailure	bool	`json:"stopOnFailure"`
 	//	Items	[]runtime.Object  `json:"items"`
@@ -27,11 +18,6 @@ type TestRunSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }
-
-//type Test struct {
-//	Kind	string	`json:"string"`
-//
-//}
 
 // TestRunStatus defines the observed state of TestRun
 type TestRunStatus struct {

@@ -1,0 +1,8 @@
+apiVersion: fortio.verf.io/v1alpha1
+kind: CurlTest
+metadata:
+  name: verfio
+spec:
+  url: "https://verf.io"
+  lookForString: "VERF.IO"
+  method: "POST"

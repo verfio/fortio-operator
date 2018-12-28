@@ -184,16 +184,17 @@ spec:
   curl:
   - order: "10"
     url: "https://verf.io"
+  - order: "15"
+    url: "https://verf.io"
+    method: "POST"
   load:
   - order: "20"
     url: "https://verf.io"
     duration: 10s
   - order: "30"
     url: "https://www.verf.io"
+    duration: 30s
     duration: 1m
-  - order: "40"
-    url: "https://www.verf.io"
-    duration: 10m
 ```
 Apply this file and get a list of different resources created by fortio-operator to execute the defined TestRun:
 

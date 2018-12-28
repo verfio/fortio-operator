@@ -202,12 +202,18 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 }
 
 func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
-	backoffLimit := int32(1)
+	backoffLimit := int32(0)
 	labels := map[string]string{
 		"app": cr.Name,
 	}
 
 	command := []string{"fortio", "curl"}
+	if cr.Spec.ContentType != "" {
+		command = append(command, "-content-type", cr.Spec.ContentType)
+	} else if strings.ToLower(cr.Spec.Method) == "post" {
+		command = append(command, "-content-type", "text/html")
+	}
+	// URL should be the last parameter
 	if cr.Spec.URL != "" {
 		command = append(command, cr.Spec.URL)
 	}

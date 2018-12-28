@@ -3,10 +3,17 @@ kind: TestRun
 metadata:
   name: verfio
 spec:
+  curl:
+  - url: "https://verf.io"
+    order: "10"
+    action: "curl"
   load:
-  - action: "load"
-    url: "https://verf.io"
+  - url: "https://verf.io"
     duration: 10s
-  - action: "load"
-    duration: 20s
+    order: "20"
+    action: "load"
+  - duration: 20s
     url: "https://www.verf.io"
+    order: "30"
+    action: "load"
+

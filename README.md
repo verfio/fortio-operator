@@ -9,11 +9,11 @@ Fortio runs at a specified query per second (qps) and records an histogram of ex
 
 Run this command to deploy the operator
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
-
+kubectl create -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
 customresourcedefinition.apiextensions.k8s.io "servers.fortio.verf.io" created
 customresourcedefinition.apiextensions.k8s.io "loadtests.fortio.verf.io" created
 customresourcedefinition.apiextensions.k8s.io "curltests.fortio.verf.io" created
+customresourcedefinition.apiextensions.k8s.io "testruns.fortio.verf.io" created
 serviceaccount "fortio-operator" created
 clusterrolebinding.rbac.authorization.k8s.io "fortio-operator" created
 role.rbac.authorization.k8s.io "fortio-operator" created
@@ -283,13 +283,20 @@ kubectl delete loadtest verfio
 loadtest.fortio.verf.io "verfio" deleted
 ```
 
+Delete TestRun
+```sh
+kubectl delete testrun verfio
+testrun.fortio.verf.io "verfio" deleted
+```
 
 Delete Operator:
 ```sh
 kubectl delete -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
+
 customresourcedefinition.apiextensions.k8s.io "servers.fortio.verf.io" deleted
 customresourcedefinition.apiextensions.k8s.io "loadtests.fortio.verf.io" deleted
 customresourcedefinition.apiextensions.k8s.io "curltests.fortio.verf.io" deleted
+customresourcedefinition.apiextensions.k8s.io "testruns.fortio.verf.io" deleted
 serviceaccount "fortio-operator" deleted
 clusterrolebinding.rbac.authorization.k8s.io "fortio-operator" deleted
 role.rbac.authorization.k8s.io "fortio-operator" deleted

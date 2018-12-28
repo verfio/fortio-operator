@@ -5,7 +5,7 @@ metadata:
 spec:
   curl:
   - order: "10"
-    url: "https://verf.io"
+    url: "https://verf.io" 
   load:
   - order: "20"
     url: "https://verf.io"

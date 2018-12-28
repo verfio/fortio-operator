@@ -174,7 +174,7 @@ Events:        <none>
 
 ## TestRun
 
-TestRun is suitable in case when you need to define a set of different tests, for example: 
+TestRun is suitable in case when you need to define a set of different tests, for example, [this YAML][fortio-testrun] defines a set of four tests in a given order: 
 ```yaml
 apiVersion: fortio.verf.io/v1alpha1
 kind: TestRun
@@ -194,6 +194,11 @@ spec:
   - order: "40"
     url: "https://www.verf.io"
     duration: 10m
+```
+Apply this file and get a list of different resources created by fortio-operator to execute the defined TestRun:
+
+```sh
+kubectl apply -f https://github.com/verfio/fortio-operator/blob/master/deploy/crds/fortio_v1alpha1_testrun_cr.yaml
 ```
 
 In order to visualize this data run the Server.
@@ -253,3 +258,4 @@ configmap "fortio-data-dir" deleted
 [fortio-home]: https://github.com/fortio/fortio
 [fortio-loadtest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_loadtest_cr.yaml
 [fortio-curltest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_curltest_cr.yaml
+[fortio-testrun]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_testrun_cr.yaml

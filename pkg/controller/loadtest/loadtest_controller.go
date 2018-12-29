@@ -250,6 +250,15 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 	if cr.Spec.Threads != "" {
 		command = append(command, "-c", cr.Spec.Threads)
 	}
+	if cr.Spec.Payload != "" {
+		command = append(command, "-payload", cr.Spec.Payload)
+	}
+	if cr.Spec.PayloadSize != "" {
+		command = append(command, "-payload-size", cr.Spec.PayloadSize)
+	}
+	if cr.Spec.MaxPayloadSizeKB != "" {
+		command = append(command, "-maxpayloadsizekb", cr.Spec.MaxPayloadSizeKB)
+	}
 	// URL should be the last parameter
 	if cr.Spec.URL != "" {
 		command = append(command, cr.Spec.URL)

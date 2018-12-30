@@ -11,15 +11,19 @@ import (
 
 // LoadTestSpec defines the desired state of LoadTest
 type LoadTestSpec struct {
-	URL         string `json:"url"`
-	Duration    string `json:"duration"`
-	Header      string `json:"header"`
-	User        string `json:"user"`
-	Password    string `json:"password"`
-	QPS         string `json:"qps"`
-	Threads     string `json:"threads"`
-	Method      string `json:"method"`
-	ContentType string `json:"contentType"`
+	URL              string `json:"url"`
+	Duration         string `json:"duration"`
+	Header           string `json:"header"`
+	User             string `json:"user"`
+	Password         string `json:"password"`
+	QPS              string `json:"qps"`
+	Threads          string `json:"threads"`
+	Method           string `json:"method"`
+	ContentType      string `json:"contentType"`
+	Payload          string `json:"payload"`
+	PayloadSize      string `json:"payloadSize"`
+	MaxPayloadSizeKB string `json:"maxPayloadSizeKB"`
+	PayloadFile      string `json:"payloadFile"`
 	// parameters for TestRun
 	Action        string `json:"action"`
 	Order         string `json:"order"`
@@ -72,7 +76,7 @@ func init() {
 	SchemeBuilder.Register(&LoadTest{}, &LoadTestList{})
 }
 
-// GetSpec() returns full LoadTestSpec as json in []byte
+// GetSpec returns full LoadTestSpec as json in []byte
 func (l *LoadTestSpec) GetSpec() []byte {
 	s, err := json.Marshal(l)
 	if err != nil {

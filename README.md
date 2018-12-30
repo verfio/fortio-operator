@@ -9,7 +9,7 @@ Fortio runs at a specified query per second (qps) and records an histogram of ex
 
 Run this command to deploy the operator
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
+kubectl create -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
 
 customresourcedefinition.apiextensions.k8s.io "servers.fortio.verf.io" created
 customresourcedefinition.apiextensions.k8s.io "loadtests.fortio.verf.io" created

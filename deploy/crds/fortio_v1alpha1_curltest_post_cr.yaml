@@ -1,3 +1,13 @@
+apiVersion: v1
+data:
+  payload: |
+    StartTest
+    {"test":"data"}
+    EndTest
+kind: ConfigMap
+metadata:
+  name: verfio-test
+---
 apiVersion: fortio.verf.io/v1alpha1
 kind: CurlTest
 metadata:
@@ -6,3 +16,5 @@ spec:
   url: "https://verf.io"
   lookForString: "VERF.IO"
   method: "POST"
+  payloadFile: "payload"
+  payloadConfigMap: verfio-test

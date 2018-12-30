@@ -259,6 +259,9 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 	if cr.Spec.MaxPayloadSizeKB != "" {
 		command = append(command, "-maxpayloadsizekb", cr.Spec.MaxPayloadSizeKB)
 	}
+	if cr.Spec.PayloadFile != "" {
+		command = append(command, "-payload-file", cr.Spec.PayloadFile)
+	}
 	// URL should be the last parameter
 	if cr.Spec.URL != "" {
 		command = append(command, cr.Spec.URL)

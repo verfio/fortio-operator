@@ -20,6 +20,7 @@ type CurlTestSpec struct {
 	PayloadSize      string `json:"payloadSize"`
 	MaxPayloadSizeKB string `json:"maxPayloadSizeKB"`
 	PayloadFile      string `json:"payloadFile"`
+	PayloadConfigMap string `json:"payloadConfigMap"`
 	// parameters for TestRun
 	Action        string `json:"action"`
 	Order         string `json:"order"`

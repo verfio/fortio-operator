@@ -222,11 +222,65 @@ func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
 	if cr.Spec.MaxPayloadSizeKB != "" {
 		command = append(command, "-maxpayloadsizekb", cr.Spec.MaxPayloadSizeKB)
 	}
+	if cr.Spec.PayloadFile != "" {
+		command = append(command, "-payload-file", cr.Spec.PayloadFile)
+	}
 	// URL should be the last parameter
 	if cr.Spec.URL != "" {
 		command = append(command, cr.Spec.URL)
 	}
 
+	if cr.Spec.PayloadConfigMap != "" {
+		// We'd like to mount configmap to local pod
+		configMapDefaulMode := int32(0666)
+		configMapVolumeSource := corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: cr.Spec.PayloadConfigMap,
+			},
+			DefaultMode: &configMapDefaulMode,
+		}
+		mountPath := "/var/lib/fortio"
+
+		// Returning job with mounted configMap
+		return &batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-job",
+				Namespace: cr.Namespace,
+				Labels:    labels,
+			},
+			Spec: batchv1.JobSpec{
+				Template: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name:    "fortio",
+								Image:   "fortio/fortio",
+								Command: command,
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      cr.Spec.PayloadConfigMap,
+										MountPath: mountPath,
+									},
+								},
+							},
+						},
+						RestartPolicy: "Never",
+						Volumes: []corev1.Volume{
+							{
+								Name: cr.Spec.PayloadConfigMap,
+								VolumeSource: corev1.VolumeSource{
+									ConfigMap: &configMapVolumeSource,
+								},
+							},
+						},
+					},
+				},
+				BackoffLimit: &backoffLimit,
+			},
+		}
+	}
+
+	// Returning job without mounted configMap
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-job",

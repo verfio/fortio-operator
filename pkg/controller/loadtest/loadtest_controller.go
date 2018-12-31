@@ -150,8 +150,8 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 			reqLogger.Error(err, "Failed to GET job from K8S.", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
 			return reconcile.Result{}, err
 		}
-		if found.Status.Failed == 4 {
-			reqLogger.Info("All 4 attempts of the job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+		if found.Status.Failed == 1 {
+			reqLogger.Info("All attempts of the job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 			return reconcile.Result{}, nil
 		} else if found.Status.Succeeded == 0 {
 			reqLogger.Info("Job is still running. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
@@ -261,6 +261,9 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 	}
 	if cr.Spec.PayloadFile != "" {
 		command = append(command, "-payload-file", cr.Spec.PayloadFile)
+	}
+	if cr.Spec.LogLevel != "" {
+		command = append(command, "-loglevel", cr.Spec.LogLevel)
 	}
 	// URL should be the last parameter
 	if cr.Spec.URL != "" {

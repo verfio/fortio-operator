@@ -148,8 +148,8 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		} else if err != nil {
 			return reconcile.Result{}, err
 		}
-		if found.Status.Failed == 4 {
-			reqLogger.Info("All 4 attempts of the job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+		if found.Status.Failed == 1 {
+			reqLogger.Info("All attempts of the job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 			return reconcile.Result{}, nil
 		} else if found.Status.Succeeded == 0 {
 			reqLogger.Info("Job is still running. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)

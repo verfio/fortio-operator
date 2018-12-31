@@ -262,6 +262,9 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 	if cr.Spec.PayloadFile != "" {
 		command = append(command, "-payload-file", cr.Spec.PayloadFile)
 	}
+	if cr.Spec.LogLevel != "" {
+		command = append(command, "-loglevel", cr.Spec.LogLevel)
+	}
 	// URL should be the last parameter
 	if cr.Spec.URL != "" {
 		command = append(command, cr.Spec.URL)

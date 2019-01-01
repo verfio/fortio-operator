@@ -278,6 +278,15 @@ func newCurlTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 	if _, ok := spec["maxPayloadSizeKB"]; ok {
 		curlTestSpec.MaxPayloadSizeKB = spec["maxPayloadSizeKB"]
 	}
+	if _, ok := spec["payloadFile"]; ok {
+		curlTestSpec.Payload = spec["payloadFile"]
+	}
+	if _, ok := spec["payloadConfigMap"]; ok {
+		curlTestSpec.Payload = spec["payloadConfigMap"]
+	}
+	if _, ok := spec["logLevel"]; ok {
+		curlTestSpec.Payload = spec["logLevel"]
+	}
 	return &fortiov1alpha1.CurlTest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"] + "-test",
@@ -329,6 +338,15 @@ func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 	}
 	if _, ok := spec["maxPayloadSizeKB"]; ok {
 		loadTestSpec.MaxPayloadSizeKB = spec["maxPayloadSizeKB"]
+	}
+	if _, ok := spec["payloadFile"]; ok {
+		loadTestSpec.Payload = spec["payloadFile"]
+	}
+	if _, ok := spec["payloadConfigMap"]; ok {
+		loadTestSpec.Payload = spec["payloadConfigMap"]
+	}
+	if _, ok := spec["logLevel"]; ok {
+		loadTestSpec.Payload = spec["logLevel"]
 	}
 	return &fortiov1alpha1.LoadTest{
 		ObjectMeta: metav1.ObjectMeta{

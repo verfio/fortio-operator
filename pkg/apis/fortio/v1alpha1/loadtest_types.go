@@ -24,6 +24,8 @@ type LoadTestSpec struct {
 	PayloadSize      string `json:"payloadSize"`
 	MaxPayloadSizeKB string `json:"maxPayloadSizeKB"`
 	PayloadFile      string `json:"payloadFile"`
+	PayloadConfigMap string `json:"payloadConfigMap"`
+	LogLevel         string `json:"logLevel"`
 	// parameters for TestRun
 	Action        string `json:"action"`
 	Order         string `json:"order"`

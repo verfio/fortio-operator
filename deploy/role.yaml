@@ -51,5 +51,6 @@ rules:
   - curltests
   - servers
   - testruns
+  - crontests
   verbs:
   - '*'

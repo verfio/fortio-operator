@@ -1,0 +1,29 @@
+apiVersion: fortio.verf.io/v1alpha1
+kind: CronTest
+metadata:
+  name: verfio1
+spec:
+  schedule: "1 * * * * *"
+  curl:
+    url: "https://verf.io"
+    lookForString: "VERF.IO"
+---
+apiVersion: fortio.verf.io/v1alpha1
+kind: CronTest
+metadata:
+  name: verfio2
+spec:
+  schedule: "2 */2 * * * *"
+  curl:
+    url: "https://verf.io"
+    lookForString: "VERF.IO"
+---
+apiVersion: fortio.verf.io/v1alpha1
+kind: CronTest
+metadata:
+  name: verfio3
+spec:
+  schedule: "3 */3 * * * *"
+  curl:
+    url: "https://verf.io"
+    lookForString: "VERF.IO"

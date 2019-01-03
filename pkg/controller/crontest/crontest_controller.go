@@ -4,12 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/besser/cron"
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
-//	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-//	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -18,9 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-//	runv1 "github.com/verfio/fortio-operator/pkg/controller/testrun"
-//	"github.com/robfig/cron"
-	"github.com/besser/cron"
 )
 
 var log = logf.Log.WithName("controller_crontest")
@@ -71,17 +67,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 var s = cron.New()
 var _ reconcile.Reconciler = &ReconcileCronTest{}
 
-
-//var m map[string]int
-//var m = make(map[string]int)
-
 // ReconcileCronTest reconciles a CronTest object
 type ReconcileCronTest struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
-	jobs	map[string]int
+	jobs   map[string]int
 }
 
 // Reconcile reads that state of the cluster for a CronTest object and makes changes based on the state read
@@ -97,11 +89,10 @@ func (r *ReconcileCronTest) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	s.Start()
 
-	if len(r.jobs) == 0 {r.jobs = make(map[string]int)}
-	//for name, job := range r.jobs {
-	//	reqLogger.Info("found job in the list", "name", name, "jobId", job)
-	//}
-	// Fetch the CronTest instance
+	if len(r.jobs) == 0 {
+		r.jobs = make(map[string]int)
+	}
+
 	instance := &fortiov1alpha1.CronTest{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 
@@ -114,7 +105,7 @@ func (r *ReconcileCronTest) Reconcile(request reconcile.Request) (reconcile.Resu
 			// Delete from cron entries
 			s.Remove(cron.EntryID(r.jobs[request.Name]))
 			// Delete from jobs map
-			delete(r.jobs,request.Name)
+			delete(r.jobs, request.Name)
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -124,32 +115,68 @@ func (r *ReconcileCronTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	// Add function to the scheduler to create required Test by given schedule
 	if instance.Status.IsScheduled != true || r.jobs[instance.Name] == 0 {
 
-	reqLogger.Info("new scheduled task", "schedule", instance.Spec.Schedule)
-		id, _ := s.AddFunc(instance.Spec.Schedule, func(){
-			//Define what we need to do 
-		t := time.Now()
-		labels := map[string]string{
-			"app": instance.Name,
-		}
-		reqLogger.Info("CronTest", "schedule", instance.Spec.Schedule, "instance.spec.croncurltest.url", instance.Spec.CronCurlTest.URL)
-		if instance.Spec.CronCurlTest.URL != "" {
-			curl := &fortiov1alpha1.CurlTest{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:		instance.Name + "-" + t.Format("20060102150405"),
-					Namespace:	instance.Namespace,
-					Labels:		labels,
-				},
-				Spec: instance.Spec.CronCurlTest,
+		reqLogger.Info("new scheduled task", "schedule", instance.Spec.Schedule)
+		id, _ := s.AddFunc(instance.Spec.Schedule, func() {
+			//Define what we need to do
+			t := time.Now()
+			labels := map[string]string{
+				"app": instance.Name,
 			}
+			reqLogger.Info("CronTest", "schedule", instance.Spec.Schedule, "instance.spec.croncurltest.url", instance.Spec.CronCurlTest.URL)
+			if instance.Spec.CronCurlTest.URL != "" {
+				curl := &fortiov1alpha1.CurlTest{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      instance.Name + "-" + t.Format("20060102150405"),
+						Namespace: instance.Namespace,
+						Labels:    labels,
+					},
+					Spec: instance.Spec.CronCurlTest,
+				}
 
-		reqLogger.Info("Creating a new CurlTest", "Curl.Namespace", instance.Namespace, "Curl.Name almost like", instance.Name)
-		// Set CronTest instance as the owner and controller
-		err := controllerutil.SetControllerReference(instance, curl, r.scheme)
-		err = r.client.Create(context.TODO(), curl)
-		if err != nil {
-				reqLogger.Info("CronTest job error", "error", err)
+				reqLogger.Info("Creating a new CurlTest", "Curl.Namespace", instance.Namespace, "Curl.Name almost like", instance.Name)
+				// Set CronTest instance as the owner and controller
+				err := controllerutil.SetControllerReference(instance, curl, r.scheme)
+				err = r.client.Create(context.TODO(), curl)
+				if err != nil {
+					reqLogger.Info("CronTest job error", "error", err)
+				}
 			}
-		}
+			if instance.Spec.CronLoadTest.URL != "" {
+				load := &fortiov1alpha1.LoadTest{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      instance.Name + "-" + t.Format("20060102150405"),
+						Namespace: instance.Namespace,
+						Labels:    labels,
+					},
+					Spec: instance.Spec.CronLoadTest,
+				}
+
+				reqLogger.Info("Creating a new LoadTest", "Load.Namespace", load.Namespace, "Load.Name", load.Name)
+				// Set CronTest instance as the owner and controller
+				err := controllerutil.SetControllerReference(instance, load, r.scheme)
+				err = r.client.Create(context.TODO(), load)
+				if err != nil {
+					reqLogger.Info("CronTest job error", "error", err)
+				}
+			}
+			if len(instance.Spec.CronTestRun.LoadTests) != 0 || len(instance.Spec.CronTestRun.CurlTests) != 0 {
+				run := &fortiov1alpha1.TestRun{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      instance.Name + "-" + t.Format("20060102150405"),
+						Namespace: instance.Namespace,
+						Labels:    labels,
+					},
+					Spec: instance.Spec.CronTestRun,
+				}
+
+				reqLogger.Info("Creating a new TestRun", "TestRun.Namespace", run.Namespace, "TestRun.Name", run.Name)
+				// Set CronTest instance as the owner and controller
+				err := controllerutil.SetControllerReference(instance, run, r.scheme)
+				err = r.client.Create(context.TODO(), run)
+				if err != nil {
+					reqLogger.Info("CronTest job error", "error", err)
+				}
+			}
 
 		})
 		// Save the key-value info about the job to remove it when instance was deleted
@@ -158,81 +185,9 @@ func (r *ReconcileCronTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		instance.Status.IsScheduled = true
 		instance.Status.CronId = int(id)
 		statusWriter := r.client.Status()
-                err = statusWriter.Update(context.TODO(), instance)
+		err = statusWriter.Update(context.TODO(), instance)
 		err = r.client.Update(context.TODO(), instance)
 		reqLogger.Info("CronTest job", "id", id, "id from map", r.jobs[instance.Name])
-
-
 	}
-
-
-	// Define a new Pod object
-	// pod := newPodForCR(instance)
-
-
-	// Check if this Pod already exists
-//	found := &corev1.Pod{}
-//	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-//	if err != nil && errors.IsNotFound(err) {
-//		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-//		err = r.client.Create(context.TODO(), pod)
-//		if err != nil {
-//			return reconcile.Result{}, err
-//		}
-
-		// Pod created successfully - don't requeue
-//		return reconcile.Result{}, nil
-//	} else if err != nil {
-//		return reconcile.Result{}, err
-//	}
-
-	// Pod already exists - don't requeue
-//	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	return reconcile.Result{}, nil
 }
-
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-/* func newTestForCR(cr *fortiov1alpha1.CronTest) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
-	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
-		},
-	}
-} */
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-/* func newPodForCR(cr *fortiov1alpha1.CronTest) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
-	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
-		},
-	}
-}
-*/

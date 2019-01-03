@@ -3,7 +3,7 @@ kind: CronTest
 metadata:
   name: verfio1
 spec:
-  schedule: "1 * * * * *"
+  schedule: "0 * * * * *"
   curl:
     url: "https://verf.io"
     lookForString: "VERF.IO"
@@ -13,8 +13,8 @@ kind: CronTest
 metadata:
   name: verfio2
 spec:
-  schedule: "2 */2 * * * *"
-  curl:
+  schedule: "0 */3 * * * *"
+  load:
     url: "https://verf.io"
     lookForString: "VERF.IO"
 ---
@@ -23,7 +23,12 @@ kind: CronTest
 metadata:
   name: verfio3
 spec:
-  schedule: "3 */3 * * * *"
-  curl:
-    url: "https://verf.io"
-    lookForString: "VERF.IO"
+  schedule: "0 */10 * * * *"
+  testRun:
+    curl:  
+    - url: "https://verf.io"
+      order: "10"
+    load:
+    - url: "https://verf.io"
+      order: "20"
+

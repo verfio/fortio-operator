@@ -1,6 +1,22 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  name: crontests.fortio.verf.io
+spec:
+  group: fortio.verf.io
+  names:
+    kind: CronTest
+    listKind: CronTestList
+    plural: crontests
+    singular: crontest
+  scope: Namespaced
+  version: v1alpha1
+  subresources:
+    status: {}
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
   name: servers.fortio.verf.io
 spec:
   group: fortio.verf.io

@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-logr/logr"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -139,11 +142,26 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// Take logs from succeeded pod
 	reqLogger.Info("Verify if it is completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	sec := 10
 	for true {
 		err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
 		if err != nil && errors.IsNotFound(err) {
-			reqLogger.Info("Job is not yet created. Waiting for 10s.", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
+			reqLogger.Info("Job is not yet created. Waiting for "+strconv.Itoa(sec)+"s.", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
 			time.Sleep(time.Second * 10)
+			switch sec {
+			case 10:
+				sec = 30
+			case 25:
+				sec = 60
+			case 60:
+				sec = 200
+			case 200:
+				reqLogger.Info("Waited for 5 minutes, job is not created, retunring error", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
+				instance.Status.Condition.Result = "Failure"
+				instance.Status.Condition.Error = "Failed to create job in 5 minutes"
+				updateStatus(r, instance, reqLogger)
+				return reconcile.Result{}, nil
+			}
 			continue
 		} else if err != nil {
 			return reconcile.Result{}, err
@@ -178,18 +196,19 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						} else {
 							reqLogger.Info("Writing results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 							writeConditionsFromLogs(instance, logs)
-							statusWriter := r.client.Status()
-							err = statusWriter.Update(context.TODO(), instance)
-							if err != nil {
-								err = r.client.Update(context.TODO(), instance)
-								if err != nil {
-									reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-								} else {
-									reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-								}
-							} else {
-								reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-							}
+							updateStatus(r, instance, reqLogger)
+							// statusWriter := r.client.Status()
+							// err = statusWriter.Update(context.TODO(), instance)
+							// if err != nil {
+							// 	err = r.client.Update(context.TODO(), instance)
+							// 	if err != nil {
+							// 		reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+							// 	} else {
+							// 		reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+							// 	}
+							// } else {
+							// 	reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+							// }
 						}
 					}
 				}
@@ -199,6 +218,22 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 	reqLogger.Info("Finished reconciling cycle", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 	return reconcile.Result{}, nil
+}
+
+func updateStatus(r *ReconcileCurlTest, instance *fortiov1alpha1.CurlTest, reqLogger logr.Logger) {
+	statusWriter := r.client.Status()
+	err := statusWriter.Update(context.TODO(), instance)
+	if err != nil {
+		reqLogger.Error(err, "Failed to update Status of the CR using statusWriter, switching back to old way", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		err = r.client.Update(context.TODO(), instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update Status of the CR using old way", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		} else {
+			reqLogger.Info("Successfully updated Status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		}
+	} else {
+		reqLogger.Info("Successfully updated Status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+	}
 }
 
 func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
@@ -318,6 +353,7 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs string) {
 	}
 	if instance.Status.Condition.Result == "" {
 		instance.Status.Condition.Result = "Failure"
+		instance.Status.Condition.Error = "Failed to find provided string"
 	}
 }
 

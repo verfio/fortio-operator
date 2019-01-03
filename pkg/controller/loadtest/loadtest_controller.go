@@ -150,7 +150,7 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 			reqLogger.Error(err, "Failed to GET job from K8S.", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
 			return reconcile.Result{}, err
 		}
-		if found.Status.Failed == 1 {
+		if found.Status.Failed == *job.Spec.BackoffLimit+1 {
 			reqLogger.Info("All attempts of the job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 			return reconcile.Result{}, nil
 		} else if found.Status.Succeeded == 0 {

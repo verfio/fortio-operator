@@ -1,6 +1,6 @@
 ## Overview
 
-The goal of this project is to provide a great automation experience for anyone who want to load test services inside the Kubernetes cluster and outside of it.
+The goal of [this project][fortio-operator] is to provide a great automation experience for anyone who want to load test services inside the Kubernetes cluster and outside of it.
 
 This project is based on the [Operator Framework][of-home], an open source toolkit to manage Kubernetes native applications, called Operators, in an effective, automated, and scalable way. Read more in the [introduction blog post][of-blog].
 
@@ -453,6 +453,7 @@ configmap "fortio-data-dir" deleted
 [of-home]: https://github.com/operator-framework
 [of-blog]: https://coreos.com/blog/introducing-operator-framework
 [fortio-home]: https://github.com/fortio/fortio
+[fortio-operator]: https://github.com/verfio/fortio-operator
 [fortio-loadtest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_loadtest_cr.yaml
 [fortio-curltest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_curltest_cr.yaml
 [fortio-testrun]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_testrun_cr.yaml

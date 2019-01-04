@@ -1,6 +1,6 @@
 ## Overview
 
-The goal of [this project][fortio-operator] is to provide a great automation experience for anyone who want to load test services inside the Kubernetes cluster and outside of it.
+The goal of [this project][fortio-operator] is to provide an excellent automation experience for load testing activities within the Kubernetes cluster and outside of it.
 
 This project is based on the [Operator Framework][of-home], an open source toolkit to manage Kubernetes native applications, called Operators, in an effective, automated, and scalable way. Read more in the [introduction blog post][of-blog].
 

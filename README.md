@@ -392,7 +392,7 @@ loadtest-verfio2-20190104132100-job-v25bz                        0/1       Compl
 loadtest-verfio2-20190104132400-job-9jzjh                        1/1       Running     0          6s
 ```
 
-The best way to analyze the set of scheduled tests is to provision Server resource and navigate to UI:
+The best way to analyze the scheduled test is to provision Server resource, navigate to UI and select the set of saved results from the list:
 
 ![UI](./doc/img/server.png)
 

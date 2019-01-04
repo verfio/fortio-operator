@@ -1,15 +1,18 @@
 ## Overview
 
+The goal of this project is to provide a great automation experience for anyone who want to load test services inside kubernetes cluster and outside of it.
+
 This project is based on the [Operator Framework][of-home], an open source toolkit to manage Kubernetes native applications, called Operators, in an effective, automated, and scalable way. Read more in the [introduction blog post][of-blog].
 
 [Fortio][fortio-home] is a load testing tool.
-Fortio runs at a specified query per second (qps) and records an histogram of execution time and calculates percentiles (e.g. p99 ie the response time such as 99% of the requests take less than that number (in seconds, SI unit)). It can run for a set duration, for a fixed number of calls, or until interrupted (at a constant target QPS, or max speed/load per connection/thread). The name fortio comes from greek φορτίο which means load/burden.
+Fortio runs at a specified query per second (qps) and records an histogram of execution time and calculates percentiles. It can run for a set duration, for a fixed number of calls, or until interrupted (at a constant target QPS, or max speed/load per connection/thread). 
 
 ## Installation
 
 Run this command to deploy the operator
 ```sh
 kubectl create -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
+customresourcedefinition.apiextensions.k8s.io "crontests.fortio.verf.io" created
 customresourcedefinition.apiextensions.k8s.io "servers.fortio.verf.io" created
 customresourcedefinition.apiextensions.k8s.io "loadtests.fortio.verf.io" created
 customresourcedefinition.apiextensions.k8s.io "curltests.fortio.verf.io" created
@@ -263,7 +266,145 @@ fortio-server   LoadBalancer   10.27.255.49   IP_ADDRESS   8080:30269/TCP   1m
 ```
 Navigate to specified address: http://IP_ADDRESS:8080/fortio/ to see the Fortio's UI and to http://IP_ADDRESS:8080/fortio/browse to see the list of saved results. Pick the existing one from the list and you will see the fancy diagram.
 
+## CronTest
+
+CrontTest is useful when you need to setup the schedule for CurlTest, LoadTest or TestRun.
+For example, [this YAML][fortio-crontest] asks Operator to execute CurlTest every 1 minute, LoadTest every 3 minutes and TestRun every 10 minutes, every day starting from 0:00:00: 
+
+```yaml
+apiVersion: fortio.verf.io/v1alpha1
+kind: CronTest
+metadata:
+  name: verfio1
+spec:
+  schedule: "0 * * * * *"
+  curl:
+    url: "https://verf.io"
+    lookForString: "VERF.IO"
+---
+apiVersion: fortio.verf.io/v1alpha1
+kind: CronTest
+metadata:
+  name: verfio2
+spec:
+  schedule: "0 */3 * * * *"
+  load:
+    url: "https://verf.io"
+    lookForString: "VERF.IO"
+---
+apiVersion: fortio.verf.io/v1alpha1
+kind: CronTest
+metadata:
+  name: verfio3
+spec:
+  schedule: "0 */10 * * * *"
+  testRun:
+    curl:  
+    - url: "https://verf.io"
+      order: "10"
+    load:
+    - url: "https://verf.io"
+      order: "20"
+```
+To specify the schedule you just need to leverage the cron-like expressions:
+
+Field name   | Mandatory? | Allowed values  | Allowed special characters
+----------   | ---------- | --------------  | --------------------------
+Seconds      | Yes        | 0-59            | * / , -
+Minutes      | Yes        | 0-59            | * / , -
+Hours        | Yes        | 0-23            | * / , -
+Day of month | Yes        | 1-31            | * / , - ?
+Month        | Yes        | 1-12 or JAN-DEC | * / , -
+Day of week  | Yes        | 0-6 or SUN-SAT  | * / , - ?
+
+Run this command to schedule our tests:
+
+```sh
+kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alph
+a1_crontest_cr.yaml
+crontest.fortio.verf.io "verfio1" created
+crontest.fortio.verf.io "verfio2" created
+crontest.fortio.verf.io "verfio3" created
+```
+
+Wait for a while and you should see similar results:
+
+```sh
+$ kubectl get curltest
+NAME                                          AGE
+testrun-verfio3-20190104132000-10-curl-test   1m
+verfio1-20190104130600                        15m
+verfio1-20190104130700                        14m
+verfio1-20190104130800                        13m
+verfio1-20190104130900                        12m
+verfio1-20190104131100                        10m
+verfio1-20190104131200                        9m
+verfio1-20190104131300                        8m
+verfio1-20190104131400                        7m
+verfio1-20190104131500                        6m
+verfio1-20190104131600                        5m
+verfio1-20190104131700                        4m
+verfio1-20190104131800                        3m
+verfio1-20190104131900                        2m
+verfio1-20190104132000                        1m
+verfio1-20190104132100                        43s
+$ kubectl get loadtest
+NAME                                          AGE
+testrun-verfio3-20190104132000-20-load-test   1m
+verfio2-20190104130600                        15m
+verfio2-20190104130900                        12m
+verfio2-20190104131200                        9m
+verfio2-20190104131500                        6m
+verfio2-20190104131800                        3m
+verfio2-20190104132100                        48s
+$ kubectl get testrun
+NAME                     AGE
+verfio3-20190104132000   1m
+
+$ kubectl get pods
+NAME                                                             READY     STATUS      RESTARTS   AGE
+curltest-testrun-verfio3-20190104132000-10-curl-test-job-fg4gn   0/1       Completed   0          3m
+curltest-verfio1-20190104130600-job-rfcc2                        0/1       Completed   0          18m
+curltest-verfio1-20190104130700-job-9k7xt                        0/1       Completed   0          17m
+curltest-verfio1-20190104130800-job-6snll                        0/1       Completed   0          16m
+curltest-verfio1-20190104130900-job-tqxkn                        0/1       Completed   0          15m
+curltest-verfio1-20190104131100-job-6465d                        0/1       Completed   0          13m
+curltest-verfio1-20190104131200-job-ng2js                        0/1       Completed   0          12m
+curltest-verfio1-20190104131300-job-9vkff                        0/1       Completed   0          11m
+curltest-verfio1-20190104131400-job-nzj85                        0/1       Completed   0          10m
+curltest-verfio1-20190104131500-job-5hkr7                        0/1       Completed   0          9m
+curltest-verfio1-20190104131600-job-np2k6                        0/1       Completed   0          8m
+curltest-verfio1-20190104131700-job-2plr6                        0/1       Completed   0          7m
+curltest-verfio1-20190104131800-job-cq7dm                        0/1       Completed   0          6m
+curltest-verfio1-20190104131900-job-zd29h                        0/1       Completed   0          5m
+curltest-verfio1-20190104132000-job-62b9d                        0/1       Completed   0          4m
+curltest-verfio1-20190104132100-job-j5bzj                        0/1       Completed   0          3m
+curltest-verfio1-20190104132200-job-z54tm                        0/1       Completed   0          2m
+curltest-verfio1-20190104132300-job-fm56q                        0/1       Completed   0          1m
+curltest-verfio1-20190104132400-job-d7h2f                        0/1       Completed   0          6s
+fortio-operator-8fdc6d967-fq9l2                                  1/1       Running     0          14m
+loadtest-testrun-verfio3-20190104132000-20-load-test-job-42pfn   0/1       Completed   0          3m
+loadtest-verfio2-20190104130600-job-vhw6q                        0/1       Completed   0          18m
+loadtest-verfio2-20190104130900-job-cfjcc                        0/1       Completed   0          15m
+loadtest-verfio2-20190104131200-job-g9f2w                        0/1       Completed   0          12m
+loadtest-verfio2-20190104131500-job-vxsj5                        0/1       Completed   0          9m
+loadtest-verfio2-20190104131800-job-cjjdr                        0/1       Completed   0          6m
+loadtest-verfio2-20190104132100-job-v25bz                        0/1       Completed   0          3m
+loadtest-verfio2-20190104132400-job-9jzjh                        1/1       Running     0          6s
+```
+
 ## Clean up
+
+Delete CronTests
+
+```sh
+$ kubectl delete crontest verfio1
+crontest.fortio.verf.io "verfio1" deleted
+$ kubectl delete crontest verfio2
+crontest.fortio.verf.io "verfio2" deleted
+$ kubectl delete crontest verfio3
+crontest.fortio.verf.io "verfio3" deleted
+```
 
 Delete Server
 ```sh
@@ -292,7 +433,7 @@ testrun.fortio.verf.io "verfio" deleted
 Delete Operator:
 ```sh
 kubectl delete -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
-
+customresourcedefinition.apiextensions.k8s.io "crontests.fortio.verf.io" deleted
 customresourcedefinition.apiextensions.k8s.io "servers.fortio.verf.io" deleted
 customresourcedefinition.apiextensions.k8s.io "loadtests.fortio.verf.io" deleted
 customresourcedefinition.apiextensions.k8s.io "curltests.fortio.verf.io" deleted
@@ -312,3 +453,4 @@ configmap "fortio-data-dir" deleted
 [fortio-loadtest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_loadtest_cr.yaml
 [fortio-curltest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_curltest_cr.yaml
 [fortio-testrun]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_testrun_cr.yaml
+[fortio-crontest]:https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_crontest_cr.yaml

@@ -320,8 +320,7 @@ Day of week  | Yes        | 0-6 or SUN-SAT  | * / , - ?
 Run this command to schedule our tests:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alph
-a1_crontest_cr.yaml
+kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_crontest_cr.yaml
 crontest.fortio.verf.io "verfio1" created
 crontest.fortio.verf.io "verfio2" created
 crontest.fortio.verf.io "verfio3" created

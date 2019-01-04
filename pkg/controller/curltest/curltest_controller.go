@@ -140,7 +140,7 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	// Take logs from succeeded pod
-	reqLogger.Info("Verify if it is completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	reqLogger.Info("Verify if it is completed or not", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
 	sec := 10
 	for true {
 		err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
@@ -213,7 +213,7 @@ func getPodLogs(r *ReconcileCurlTest, job *batchv1.Job) (string, error) {
 	if err != nil {
 		return logs, err
 	}
-	return logs, err
+	return logs, nil
 }
 
 func updateStatus(r *ReconcileCurlTest, instance *fortiov1alpha1.CurlTest, reqLogger logr.Logger) {

@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-logr/logr"
 
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -107,7 +110,13 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	// Define a new Pod object
+	// If Result is not empty - stop, we already finished with this CR
+	if instance.Status.Condition.Result != "" {
+		reqLogger.Info("All work with this CR is completed", "CR.Namespace", instance.Namespace, "CR.Name", instance.Name)
+		return reconcile.Result{}, nil
+	}
+
+	// Define a new Job object
 	job := newJobForCR(instance)
 
 	// Set CurlTest instance as the owner and controller
@@ -131,25 +140,37 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		reqLogger.Info("Job already exists", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
 	}
 
-	// If we already got logs from the succeeded pod - don't take logs - delete the job - don't requeue
-	if found.Status.Succeeded == 1 {
-		reqLogger.Info("We already took logs - job is done!", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
-		return reconcile.Result{}, nil
-	}
-
 	// Take logs from succeeded pod
-	reqLogger.Info("Verify if it is completed or not", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+	reqLogger.Info("Verify if it is completed or not", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
+	sec := 10
 	for true {
 		err = r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, found)
 		if err != nil && errors.IsNotFound(err) {
-			reqLogger.Info("Job is not yet created. Waiting for 10s.", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
+			reqLogger.Info("Job is not yet created. Waiting for "+strconv.Itoa(sec)+"s.", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
 			time.Sleep(time.Second * 10)
+			switch sec {
+			case 10:
+				sec = 30
+			case 25:
+				sec = 60
+			case 60:
+				sec = 200
+			case 200:
+				reqLogger.Info("Waited for 5 minutes, job is not created, retunring error", "Job.Namespace", job.Namespace, "Job.Name", job.Name)
+				instance.Status.Condition.Result = "Failure"
+				instance.Status.Condition.Error = "Failed to create job in 5 minutes"
+				updateStatus(r, instance, reqLogger)
+				return reconcile.Result{}, nil
+			}
 			continue
 		} else if err != nil {
 			return reconcile.Result{}, err
 		}
 		if found.Status.Failed == *job.Spec.BackoffLimit+1 {
 			reqLogger.Info("All attempts of the job finished in error. Please review logs.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+			instance.Status.Condition.Result = "Failure"
+			instance.Status.Condition.Error = "Job failed. Please review logs."
+			updateStatus(r, instance, reqLogger)
 			return reconcile.Result{}, nil
 		} else if found.Status.Succeeded == 0 {
 			reqLogger.Info("Job is still running. Waiting for 10s.", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
@@ -158,40 +179,15 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		} else if found.Status.Succeeded == 1 { // verify that there is one succeeded pod
 			for _, c := range found.Status.Conditions {
 				if c.Type == "Complete" && c.Status == "True" {
-					reqLogger.Info("Job competed. Fetch for pod", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
-					podList := &corev1.PodList{}
-					labelSelector := labels.SelectorFromSet(labelsForJob(found.Name))
-					listOps := &client.ListOptions{
-						Namespace:     instance.Namespace,
-						LabelSelector: labelSelector,
-					}
-					err = r.client.List(context.TODO(), listOps, podList)
+					reqLogger.Info("Job competed. Fetch for logs in pod", "Job.Namespace", found.Namespace, "Job.Name", found.Name)
+					logs, err := getPodLogs(r, found)
 					if err != nil {
-						reqLogger.Error(err, "Failed to list pods.", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+						reqLogger.Error(err, "Failed to get logs from a pod", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 						return reconcile.Result{}, err
 					}
-					for _, pod := range podList.Items {
-						reqLogger.Info("Found pod. Readings logs from pod", "pod.Namespace", pod.Namespace, "pod.Name", pod.Name)
-						logs := getPodLogs(pod)
-						if logs == "" {
-							reqLogger.Info("Nil logs", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-						} else {
-							reqLogger.Info("Writing results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-							writeConditionsFromLogs(instance, logs)
-							statusWriter := r.client.Status()
-							err = statusWriter.Update(context.TODO(), instance)
-							if err != nil {
-								err = r.client.Update(context.TODO(), instance)
-								if err != nil {
-									reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-								} else {
-									reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-								}
-							} else {
-								reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-							}
-						}
-					}
+					reqLogger.Info("Writing results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+					writeConditionsFromLogs(instance, &logs)
+					updateStatus(r, instance, reqLogger)
 				}
 			}
 			break
@@ -199,6 +195,88 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 	reqLogger.Info("Finished reconciling cycle", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 	return reconcile.Result{}, nil
+}
+
+func getPodLogs(r *ReconcileCurlTest, job *batchv1.Job) (string, error) {
+	var logs string
+	podList := &corev1.PodList{}
+	labelSelector := labels.SelectorFromSet(labelsForJob(job.Name))
+	listOps := &client.ListOptions{
+		Namespace:     job.Namespace,
+		LabelSelector: labelSelector,
+	}
+	err := r.client.List(context.TODO(), listOps, podList)
+	if err != nil {
+		return logs, err
+	}
+	pod := &podList.Items[0]
+	logs, err = getLogs(pod)
+	if err != nil {
+		return logs, err
+	}
+	return logs, nil
+}
+
+func updateStatus(r *ReconcileCurlTest, instance *fortiov1alpha1.CurlTest, reqLogger logr.Logger) {
+	statusWriter := r.client.Status()
+	err := statusWriter.Update(context.TODO(), instance)
+	if err != nil {
+		reqLogger.Error(err, "Failed to update Status of the CR using statusWriter, switching back to old way", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		err = r.client.Update(context.TODO(), instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update Status of the CR using old way", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		} else {
+			reqLogger.Info("Successfully updated Status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		}
+	} else {
+		reqLogger.Info("Successfully updated Status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+	}
+}
+
+func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs *string) {
+	parsedLogs := strings.Fields(*logs)
+
+	for _, word := range parsedLogs {
+		if strings.Contains(word, instance.Spec.LookForString) {
+			instance.Status.Condition.Result = "Success"
+		}
+	}
+	if instance.Status.Condition.Result == "" {
+		instance.Status.Condition.Result = "Failure"
+		instance.Status.Condition.Error = "Failed to find provided string"
+	}
+}
+
+func getLogs(pod *corev1.Pod) (string, error) {
+	podLogOpts := corev1.PodLogOptions{}
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return "error in getting config", err
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "error in getting access to K8S", err
+	}
+	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
+	podLogs, err := req.Stream()
+	if err != nil {
+		return "error in opening stream" + req.URL().String(), err
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "error in copy information from podLogs to buf", err
+	}
+	str := buf.String()
+
+	return str, nil
+}
+
+func labelsForJob(name string) map[string]string {
+	return map[string]string{"job-name": name}
 }
 
 func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
@@ -306,49 +384,4 @@ func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
 			BackoffLimit: &backoffLimit,
 		},
 	}
-}
-
-func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs string) {
-	parsedLogs := strings.Fields(logs)
-
-	for _, word := range parsedLogs {
-		if strings.Contains(word, instance.Spec.LookForString) {
-			instance.Status.Condition.Result = "Success"
-		}
-	}
-	if instance.Status.Condition.Result == "" {
-		instance.Status.Condition.Result = "Failure"
-	}
-}
-
-func getPodLogs(pod corev1.Pod) string {
-	podLogOpts := corev1.PodLogOptions{}
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return "error in getting config"
-	}
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return "error in getting access to K8S"
-	}
-	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
-	podLogs, err := req.Stream()
-	if err != nil {
-		return "error in opening stream" + req.URL().String()
-	}
-	defer podLogs.Close()
-
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, podLogs)
-	if err != nil {
-		return "error in copy information from podLogs to buf"
-	}
-	str := buf.String()
-
-	return str
-}
-
-func labelsForJob(name string) map[string]string {
-	return map[string]string{"job-name": name}
 }

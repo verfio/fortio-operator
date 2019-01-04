@@ -1,6 +1,6 @@
 ## Overview
 
-The goal of this project is to provide a great automation experience for anyone who want to load test services inside kubernetes cluster and outside of it.
+The goal of this project is to provide a great automation experience for anyone who want to load test services inside the Kubernetes cluster and outside of it.
 
 This project is based on the [Operator Framework][of-home], an open source toolkit to manage Kubernetes native applications, called Operators, in an effective, automated, and scalable way. Read more in the [introduction blog post][of-blog].
 
@@ -11,7 +11,7 @@ Fortio runs at a specified query per second (qps) and records an histogram of ex
 
 Run this command to deploy the operator
 ```sh
-kubectl create -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
+$ kubectl create -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/fortio.yaml
 customresourcedefinition.apiextensions.k8s.io "crontests.fortio.verf.io" created
 customresourcedefinition.apiextensions.k8s.io "servers.fortio.verf.io" created
 customresourcedefinition.apiextensions.k8s.io "loadtests.fortio.verf.io" created
@@ -27,7 +27,7 @@ configmap "fortio-data-dir" created
 Verify that fortio-operator pod is up and running
 
 ```sh
-kubectl get pods
+$ kubectl get pods
 NAME                              READY     STATUS    RESTARTS   AGE
 fortio-operator-8fdc6d967-ssjk4   1/1       Running   0          33s
 ```
@@ -47,14 +47,14 @@ spec:
 Apply this file:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_curltest_cr.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_curltest_cr.yaml
 curltest.fortio.verf.io "verfio" created
 ```
 
 Check the result using the describe command:
 
 ```sh
-kubectl describe curltest
+$ kubectl describe curltest
 Name:         verfio
 Namespace:    default
 Labels:       <none>
@@ -87,18 +87,18 @@ spec:
 Apply this file:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_loadtest_cr.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_loadtest_cr.yaml
 
 loadtest.fortio.verf.io "verfio" created
 ```
 Verify that Job to run the LoadTest is created and Pod has successfully completed the required task:
 
 ```sh
-kubectl get jobs
+$ kubectl get jobs
 NAME         DESIRED   SUCCESSFUL   AGE
 verfio-job   1         1            4m
 
-kubectl get pods
+$ kubectl get pods
 NAME                              READY     STATUS      RESTARTS   AGE
 fortio-operator-8fdc6d967-ssjk4   1/1       Running     0          15m
 verfio-job-v8wl6                  0/1       Completed   0          5m
@@ -107,7 +107,7 @@ verfio-job-v8wl6                  0/1       Completed   0          5m
 When test is finished, the result will be stored in the `fortio-data-dir` configmap:
 
 ```sh
-kubectl get cm
+$ kubectl get cm
 NAME                   DATA      AGE
 fortio-data-dir        1         19m
 fortio-operator-lock   0         19m
@@ -115,7 +115,7 @@ fortio-operator-lock   0         19m
 Check the content of this data (output omitted):
 
 ```sh
-kubectl describe cm fortio-data-dir
+$ kubectl describe cm fortio-data-dir
 verfio_2018-12-22_155126.json:
 ----
 {
@@ -152,7 +152,7 @@ verfio_2018-12-22_155126.json:
 ```
 Also, you can observe the result in the Status field of LoadTest resource:
 ```sh
-kubectl describe loadtest
+$ kubectl describe loadtest
 Name:         verfio
 Namespace:    default
 Labels:       <none>
@@ -200,26 +200,26 @@ spec:
 ```
 Apply this file 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_testrun_cr.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_testrun_cr.yaml
 testrun.fortio.verf.io "verfio" created
 ```
 Wait for a while and verify the list of CurlTest resources:
 ```sh
-kubectl get curltest
+$ kubectl get curltest
 NAME                          AGE
 testrun-verfio-10-curl-test   1m
 testrun-verfio-15-curl-test   1m
 ```
 Wait a couple of minutes and get the list of LoadTest resources:
 ```sh
-kubectl get loadtest
+$ kubectl get loadtest
 NAME                          AGE
 testrun-verfio-20-load-test   1m
 testrun-verfio-30-load-test   1m
 ```
 For each test the dedicated pod was provisioned:
 ```sh
-kubectl get pods
+$ kubectl get pods
 NAME                                             READY     STATUS      RESTARTS   AGE
 curltest-testrun-verfio-10-curl-test-job-kldl8   0/1       Completed   0          3m
 curltest-testrun-verfio-15-curl-test-job-sjnx7   0/1       Completed   0          2m
@@ -230,7 +230,7 @@ loadtest-testrun-verfio-30-load-test-job-x6w8f   0/1       Completed   0        
 Let's take a look whether testrun-verfio-30-load-test was successful:
 
 ```sh
-kubectl describe loadtest testrun-verfio-30-load-test
+$ kubectl describe loadtest testrun-verfio-30-load-test
 Name:         testrun-verfio-30-load-test
 Namespace:    default
 Labels:       app=verfio
@@ -255,12 +255,12 @@ To analyze results provided by various tests, as part of single TestRun, or as s
 ## Server
 Run this command to instruct the fortio-operator to spin up the server:
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_server_cr.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_server_cr.yaml
 server.fortio.verf.io "fortio-server" created
 ```
 Check IP address of Server:
 ```sh
-kubectl get service fortio-server
+$ kubectl get service fortio-server
 NAME            TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
 fortio-server   LoadBalancer   10.27.255.49   IP_ADDRESS   8080:30269/TCP   1m
 ```
@@ -320,7 +320,7 @@ Day of week  | Yes        | 0-6 or SUN-SAT  | * / , - ?
 Run this command to schedule our tests:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_crontest_cr.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_crontest_cr.yaml
 crontest.fortio.verf.io "verfio1" created
 crontest.fortio.verf.io "verfio2" created
 crontest.fortio.verf.io "verfio3" created
@@ -391,6 +391,10 @@ loadtest-verfio2-20190104131800-job-cjjdr                        0/1       Compl
 loadtest-verfio2-20190104132100-job-v25bz                        0/1       Completed   0          3m
 loadtest-verfio2-20190104132400-job-9jzjh                        1/1       Running     0          6s
 ```
+
+The best way to analyze the set of scheduled tests is to provision Server resource and navigate to UI:
+
+![UI](./doc/img/server.png)
 
 ## Clean up
 

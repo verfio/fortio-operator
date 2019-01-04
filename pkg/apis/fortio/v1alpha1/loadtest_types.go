@@ -51,6 +51,7 @@ type LoadTestCondition struct {
 	RespTime  string `json:"avg"`
 	QPS       string `json:"qps"`
 	Result    string `json:"result"`
+	Error     string `json:"error"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

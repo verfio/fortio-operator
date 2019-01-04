@@ -110,6 +110,7 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
+	// If Result is not empty - stop, we already finished with this CR
 	if instance.Status.Condition.Result != "" {
 		reqLogger.Info("All work with this CR is completed", "CR.Namespace", instance.Namespace, "CR.Name", instance.Name)
 		return reconcile.Result{}, nil
@@ -185,7 +186,7 @@ func (r *ReconcileCurlTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						return reconcile.Result{}, err
 					}
 					reqLogger.Info("Writing results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-					writeConditionsFromLogs(instance, logs)
+					writeConditionsFromLogs(instance, &logs)
 					updateStatus(r, instance, reqLogger)
 				}
 			}
@@ -230,6 +231,52 @@ func updateStatus(r *ReconcileCurlTest, instance *fortiov1alpha1.CurlTest, reqLo
 	} else {
 		reqLogger.Info("Successfully updated Status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 	}
+}
+
+func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs *string) {
+	parsedLogs := strings.Fields(*logs)
+
+	for _, word := range parsedLogs {
+		if strings.Contains(word, instance.Spec.LookForString) {
+			instance.Status.Condition.Result = "Success"
+		}
+	}
+	if instance.Status.Condition.Result == "" {
+		instance.Status.Condition.Result = "Failure"
+		instance.Status.Condition.Error = "Failed to find provided string"
+	}
+}
+
+func getLogs(pod *corev1.Pod) (string, error) {
+	podLogOpts := corev1.PodLogOptions{}
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return "error in getting config", err
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "error in getting access to K8S", err
+	}
+	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
+	podLogs, err := req.Stream()
+	if err != nil {
+		return "error in opening stream" + req.URL().String(), err
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "error in copy information from podLogs to buf", err
+	}
+	str := buf.String()
+
+	return str, nil
+}
+
+func labelsForJob(name string) map[string]string {
+	return map[string]string{"job-name": name}
 }
 
 func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
@@ -337,50 +384,4 @@ func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
 			BackoffLimit: &backoffLimit,
 		},
 	}
-}
-
-func writeConditionsFromLogs(instance *fortiov1alpha1.CurlTest, logs string) {
-	parsedLogs := strings.Fields(logs)
-
-	for _, word := range parsedLogs {
-		if strings.Contains(word, instance.Spec.LookForString) {
-			instance.Status.Condition.Result = "Success"
-		}
-	}
-	if instance.Status.Condition.Result == "" {
-		instance.Status.Condition.Result = "Failure"
-		instance.Status.Condition.Error = "Failed to find provided string"
-	}
-}
-
-func getLogs(pod *corev1.Pod) (string, error) {
-	podLogOpts := corev1.PodLogOptions{}
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return "error in getting config", err
-	}
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return "error in getting access to K8S", err
-	}
-	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
-	podLogs, err := req.Stream()
-	if err != nil {
-		return "error in opening stream" + req.URL().String(), err
-	}
-	defer podLogs.Close()
-
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, podLogs)
-	if err != nil {
-		return "error in copy information from podLogs to buf", err
-	}
-	str := buf.String()
-
-	return str, nil
-}
-
-func labelsForJob(name string) map[string]string {
-	return map[string]string{"job-name": name}
 }

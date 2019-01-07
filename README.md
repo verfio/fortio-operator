@@ -309,7 +309,7 @@ Events:        <none>
 To analyze results provided by various tests, as part of single TestRun, or as separated tests, it could be very useful to visualize them. We can use the Server resource to make it possible.
 
 ## Server 
-Run this command to instruct the fortio-operator to spin up the server:
+Apply [this YAML][fortio-server] to instruct the fortio-operator to spin up the server and expose it via LoadBalancer Kubernetes Service type:
 ```sh
 $ kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_server_cr.yaml
 server.fortio.verf.io "fortio-server" created
@@ -318,7 +318,7 @@ Check IP address of Server:
 ```sh
 $ kubectl get service fortio-server
 NAME            TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
-fortio-server   LoadBalancer   10.27.255.49   IP_ADDRESS   8080:30269/TCP   1m
+fortio-server   LoadBalancer   10.27.255.49   IP_ADDRESS       8080:30269/TCP   1m
 ```
 Navigate to specified address: http://IP_ADDRESS:8080/fortio/ to see the Fortio's UI and to http://IP_ADDRESS:8080/fortio/browse to see the list of saved results. Pick the existing one from the list and you will see the fancy diagram.
 
@@ -331,7 +331,7 @@ metadata:
 spec:
   type: NodePort
 ```
-Also, you are able to update current Server type via `kubectl edit server` command. 
+Also, you are allowed to update current Server type via `kubectl edit server` command. 
 For example, change LoadBalancer to NodePort and Kubernetes Service will be updated:
 ```sh
 $ kubectl get svc
@@ -541,4 +541,5 @@ configmap "fortio-data-dir" deleted
 [fortio-loadtest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_loadtest_cr.yaml
 [fortio-curltest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_curltest_cr.yaml
 [fortio-testrun]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_testrun_cr.yaml
-[fortio-crontest]:https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_crontest_cr.yaml
+[fortio-crontest]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_crontest_cr.yaml
+[fortio-server]: https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_server_cr.yaml

@@ -9,6 +9,7 @@ import (
 
 // ServerSpec defines the desired state of Server
 type ServerSpec struct {
+	Type	string	`json:"type"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }

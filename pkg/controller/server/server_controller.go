@@ -165,10 +165,18 @@ func (r *ReconcileServer) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 	} else if err != nil {
 		return reconcile.Result{}, err
+	} else {
+		reqLogger.Info("Updating ServiceType for Server", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+		foundSvc.Spec.Type = svc.Spec.Type
+		err = r.client.Update(context.TODO(), foundSvc)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Service already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Service and ReplicaSet already exist", "ReplicaSet.Name", found.Name, "Service.Name", foundSvc.Name)
+	reqLogger.Info("Skip reconcile: ReplicaSet already exist", "ReplicaSet.Name", found.Name, "Service.Name", foundSvc.Name)
+
 	return reconcile.Result{}, nil
 }
 
@@ -245,18 +253,32 @@ func newServiceForCR(cr *fortiov1alpha1.Server) *corev1.Service {
 	labels := map[string]string{
 		"app": cr.Name,
 	}
+	svcSpec := corev1.ServiceSpec{}
 
-	svcSpec := corev1.ServiceSpec{
-		Selector: labels,
-		Ports: []corev1.ServicePort{
-			corev1.ServicePort{
-				Name: "http",
-				Port: int32(8080),
+	// By default, we'd like to leverage NodePort, because LoadBalancer could be unavailable for users
+	if cr.Spec.Type == "LoadBalancer" {
+		svcSpec = corev1.ServiceSpec{
+			Selector: labels,
+			Ports: []corev1.ServicePort{
+				corev1.ServicePort{
+					Name: "http",
+					Port: int32(8080),
+				},
 			},
-		},
-		Type: corev1.ServiceTypeLoadBalancer,
+			Type: corev1.ServiceTypeLoadBalancer,
+		}
+	} else  {
+		svcSpec = corev1.ServiceSpec{
+			Selector: labels,
+			Ports: []corev1.ServicePort{
+				corev1.ServicePort{
+					Name: "http",
+					Port: int32(8080),
+				},
+			},
+			Type: corev1.ServiceTypeNodePort,
+		}
 	}
-
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cr.Name,

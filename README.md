@@ -308,7 +308,7 @@ Events:        <none>
 ```
 To analyze results provided by various tests, as part of single TestRun, or as separated tests, it could be very useful to visualize them. We can use the Server resource to make it possible.
 
-## Server
+## Server 
 Run this command to instruct the fortio-operator to spin up the server:
 ```sh
 $ kubectl apply -f https://raw.githubusercontent.com/verfio/fortio-operator/master/deploy/crds/fortio_v1alpha1_server_cr.yaml
@@ -321,6 +321,34 @@ NAME            TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          
 fortio-server   LoadBalancer   10.27.255.49   IP_ADDRESS   8080:30269/TCP   1m
 ```
 Navigate to specified address: http://IP_ADDRESS:8080/fortio/ to see the Fortio's UI and to http://IP_ADDRESS:8080/fortio/browse to see the list of saved results. Pick the existing one from the list and you will see the fancy diagram.
+
+if LoadBalancer Service type is not supported by your Kubernetes cluster, you are able to expose UI via NodePort, like:
+```yaml
+apiVersion: fortio.verf.io/v1alpha1
+kind: Server
+metadata:
+  name: fortio-server
+spec:
+  type: NodePort
+```
+Also, you are able to update current Server type via `kubectl edit server` command. 
+For example, change LoadBalancer to NodePort and Kubernetes Service will be updated:
+```sh
+$ kubectl get svc
+NAME            TYPE           CLUSTER-IP      EXTERNAL-IP       PORT(S)                      AGE
+fortio-server   LoadBalancer   10.11.255.200   104.155.157.141   8080:32575/TCP               1h
+$ kubectl edit server                                                                         
+server.fortio.verf.io "fortio-server" edited
+$ kubectl get svc
+NAME            TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                      AGE
+fortio-server   NodePort       10.11.255.200   <none>           8080:32575/TCP               1h
+``` 
+
+Currently, Server.Spec allows to configure only single value:
+
+Field name| Mandatory? | Allowed values                    | Description
+----------| ---------- | ----------------------------------|-----------------
+type      | No         | Loadbalancer | NodePort (default) | How to expose the UI
 
 ## CronTest
 

@@ -3,4 +3,4 @@ kind: Server
 metadata:
   name: fortio-server
 spec:
-  # Add fields here
+  type: NodePort

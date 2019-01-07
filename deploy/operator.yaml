@@ -15,7 +15,7 @@ spec:
       serviceAccountName: fortio-operator
       containers:
         - name: fortio-operator
-          image: fortio/fortio-operator
+          image: ochorny/fortio-operator
           ports:
           - containerPort: 60000
             name: metrics

@@ -348,7 +348,7 @@ Currently, Server.Spec allows to configure only single value:
 
 Field name| Mandatory? | Allowed values                    | Description
 ----------| ---------- | ----------------------------------|-----------------
-type      | No         | [LoadBalancer|NodePort (default)] | How to expose the UI
+type      | No         | LoadBalancer or NodePort (default)| How to expose the UI
 
 ## CronTest
 

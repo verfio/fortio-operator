@@ -83,18 +83,18 @@ kind: ServiceAccount
 metadata:
   name: fortio-operator
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: fortio-operator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-  - kind: ServiceAccount
-    name: fortio-operator
-    namespace: default
+# apiVersion: rbac.authorization.k8s.io/v1beta1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: fortio-operator
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: cluster-admin
+# subjects:
+#   - kind: ServiceAccount
+#     name: fortio-operator
+#     namespace: default
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -102,6 +102,12 @@ metadata:
   creationTimestamp: null
   name: fortio-operator
 rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods/log
+  verbs:
+  - '*'
 - apiGroups:
   - ""
   resources:

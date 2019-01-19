@@ -86,7 +86,7 @@ func main() {
 	}
 
 	log.Info("Starting web-server in go routine...")
-	httpServer()
+	go httpServer()
 
 	log.Info("Starting the Cmd.")
 

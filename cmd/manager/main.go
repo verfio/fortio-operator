@@ -98,7 +98,7 @@ func main() {
 }
 
 func httpServer() {
-	fs := http.FileServer(http.Dir("static"))
+	fs := http.FileServer(http.Dir("metrics"))
 	http.Handle("/usr/local/bin/", fs)
 
 	log.Info("Serving /usr/local/bin/ directory, listening on port 3000...")

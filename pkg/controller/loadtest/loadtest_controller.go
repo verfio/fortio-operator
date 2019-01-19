@@ -2,6 +2,7 @@ package loadtest
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -196,6 +197,12 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 						reqLogger.Error(err, "Failed to update config map", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 					} else {
 						reqLogger.Info("Successfully updated config map", "configMap.Namespace", instance.Namespace, "configMap.Name", "fortio-data-dir")
+					}
+					err = writeResultToFile(instance, &logs)
+					if err != nil {
+						reqLogger.Error(err, "Failed to write to metrics file", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+					} else {
+						reqLogger.Info("Successfully update metrics file", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 					}
 				}
 			}
@@ -450,4 +457,45 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 			BackoffLimit: &backoffLimit,
 		},
 	}
+}
+
+func writeResultToFile(instance *fortiov1alpha1.LoadTest, logs *string) error {
+	f, err := os.Create("/usr/local/bin/metrics")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	percentiles := []string{"50%", "75%", "90%", "99%", "99.9%"}
+	for _, p := range percentiles {
+		str := "http_request_duration_seconds{quantile=\"" + p + "\"} "
+		switch p {
+		case "50%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target50 + "\n")
+			if err != nil {
+				return err
+			}
+		case "75%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target75 + "\n")
+			if err != nil {
+				return err
+			}
+		case "90%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target90 + "\n")
+			if err != nil {
+				return err
+			}
+		case "99%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target99 + "\n")
+			if err != nil {
+				return err
+			}
+		case "99.9%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target999 + "\n")
+			if err != nil {
+				return err
+			}
+		}
+	}
+	f.Sync()
+	return nil
 }

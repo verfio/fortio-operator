@@ -102,7 +102,7 @@ func httpServer() {
 	http.Handle("/tmp/", fs)
 
 	log.Info("Serving /usr/local/bin/ directory, listening on port 3000...")
-	err := http.ListenAndServe(":3000", nil)
+	err := http.ListenAndServe(":8082/metrics", nil)
 	if err != nil {
 		log.Error(err, "Error with web-server")
 	}

@@ -177,6 +177,8 @@ spec:
           ports:
           - containerPort: 60000
             name: metrics
+          - containerPort: 8082
+            name: fortio-metrics
           command:
           - fortio-operator
           imagePullPolicy: Always

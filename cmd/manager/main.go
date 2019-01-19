@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"runtime"
 
@@ -84,11 +85,25 @@ func main() {
 		os.Exit(1)
 	}
 
+	log.Info("Starting web-server in go routine...")
+	httpServer()
+
 	log.Info("Starting the Cmd.")
 
 	// Start the Cmd
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		log.Error(err, "manager exited non-zero")
 		os.Exit(1)
+	}
+}
+
+func httpServer() {
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/usr/local/bin/", fs)
+
+	log.Info("Serving /usr/local/bin/ directory, listening on port 3000...")
+	err := http.ListenAndServe(":3000", nil)
+	if err != nil {
+		log.Error(err, "Error with web-server")
 	}
 }

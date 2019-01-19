@@ -99,7 +99,7 @@ func main() {
 
 func httpServer() {
 	fs := http.FileServer(http.Dir("metrics"))
-	http.Handle("/usr/local/bin/", fs)
+	http.Handle("/tmp/", fs)
 
 	log.Info("Serving /usr/local/bin/ directory, listening on port 3000...")
 	err := http.ListenAndServe(":3000", nil)

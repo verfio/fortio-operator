@@ -226,9 +226,8 @@ func updateConfigMap(r *ReconcileLoadTest, data *string, instance *fortiov1alpha
 	err = r.client.Update(context.TODO(), configMap)
 	if err != nil {
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func updateStatus(r *ReconcileLoadTest, instance *fortiov1alpha1.LoadTest, reqLogger logr.Logger) {
@@ -460,7 +459,7 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 }
 
 func writeResultToFile(instance *fortiov1alpha1.LoadTest, logs *string) error {
-	f, err := os.Create("/usr/local/bin/metrics")
+	f, err := os.Create("/tmp/metrics")
 	if err != nil {
 		return err
 	}

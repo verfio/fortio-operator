@@ -2,6 +2,7 @@ package loadtest
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -197,6 +198,12 @@ func (r *ReconcileLoadTest) Reconcile(request reconcile.Request) (reconcile.Resu
 					} else {
 						reqLogger.Info("Successfully updated config map", "configMap.Namespace", instance.Namespace, "configMap.Name", "fortio-data-dir")
 					}
+					err = writeResultToFile(instance, &logs)
+					if err != nil {
+						reqLogger.Error(err, "Failed to write to metrics file", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+					} else {
+						reqLogger.Info("Successfully update metrics file", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+					}
 				}
 			}
 			break
@@ -219,9 +226,8 @@ func updateConfigMap(r *ReconcileLoadTest, data *string, instance *fortiov1alpha
 	err = r.client.Update(context.TODO(), configMap)
 	if err != nil {
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func updateStatus(r *ReconcileLoadTest, instance *fortiov1alpha1.LoadTest, reqLogger logr.Logger) {
@@ -309,6 +315,12 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.LoadTest, logs *string) {
 			instance.Status.Condition.Target999 = parsedLogs[i+1]
 		case "warmup)":
 			instance.Status.Condition.RespTime = parsedLogs[i+1] + parsedLogs[i+2]
+		case "Code":
+			if parsedLogs[i+1] == "200" {
+				instance.Status.Condition.Codes200 = parsedLogs[i+3]
+			} else if parsedLogs[i+1] == "500" {
+				instance.Status.Condition.Codes500 = parsedLogs[i+3]
+			}
 		}
 		if strings.Contains(word, "qps=") {
 			instance.Status.Condition.QPS = word[4:]
@@ -450,4 +462,72 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 			BackoffLimit: &backoffLimit,
 		},
 	}
+}
+
+func writeResultToFile(instance *fortiov1alpha1.LoadTest, logs *string) error {
+	f, err := os.Create("/tmp/metrics")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	percentiles := []string{"50%", "75%", "90%", "99%", "99.9%"}
+	for _, p := range percentiles {
+		str := "http_request_duration_seconds{quantile=\"" + p + "\"} "
+		switch p {
+		case "50%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target50 + "\n")
+			if err != nil {
+				return err
+			}
+		case "75%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target75 + "\n")
+			if err != nil {
+				return err
+			}
+		case "90%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target90 + "\n")
+			if err != nil {
+				return err
+			}
+		case "99%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target99 + "\n")
+			if err != nil {
+				return err
+			}
+		case "99.9%":
+			_, err = f.WriteString(str + instance.Status.Condition.Target999 + "\n")
+			if err != nil {
+				return err
+			}
+		}
+	}
+	codes := []string{"200", "500"}
+	var method string
+	if instance.Spec.Method == "POST" {
+		method = "POST"
+	} else {
+		method = "GET"
+	}
+	url := instance.Spec.URL
+	for _, c := range codes {
+		str := "http_requests_total{method=\"" + method + "\", endpoint=\"" + url + "\", status=\"" + c + "\"} "
+		switch c {
+		case "200":
+			_, err = f.WriteString(str + instance.Status.Condition.Codes200 + "\n")
+			if err != nil {
+				return err
+			}
+		case "500":
+			if instance.Status.Condition.Codes500 == "" {
+				_, err = f.WriteString(str + "0" + "\n")
+			} else {
+				_, err = f.WriteString(str + instance.Status.Condition.Codes500 + "\n")
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+	f.Sync()
+	return nil
 }

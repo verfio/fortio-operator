@@ -177,6 +177,8 @@ spec:
           ports:
           - containerPort: 60000
             name: metrics
+          - containerPort: 8082
+            name: fortio-metrics
           command:
           - fortio-operator
           imagePullPolicy: Always
@@ -199,6 +201,21 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "fortio-operator"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fortio-metrics
+  labels:
+    app: fortio-metrics
+spec:
+  ports:
+  - name: http
+    port: 8082
+    targetPort: 8082
+  type: LoadBalancer
+  selector:
+    name: fortio-operator
 ---
 apiVersion: v1
 kind: ConfigMap

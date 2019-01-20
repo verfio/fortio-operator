@@ -20,7 +20,7 @@ type CronTestSpec struct {
 // CronTestStatus defines the observed state of CronTest
 type CronTestStatus struct {
 	IsScheduled bool `json:"isScheduled"`
-	CronId	int	`json:"cronId"`
+	CronID	int	`json:"cronId"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }

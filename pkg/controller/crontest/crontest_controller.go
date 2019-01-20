@@ -183,7 +183,7 @@ func (r *ReconcileCronTest) Reconcile(request reconcile.Request) (reconcile.Resu
 		r.jobs[instance.Name] = int(id)
 		// Mark instance as Scheduled
 		instance.Status.IsScheduled = true
-		instance.Status.CronId = int(id)
+		instance.Status.CronID = int(id)
 		statusWriter := r.client.Status()
 		err = statusWriter.Update(context.TODO(), instance)
 		err = r.client.Update(context.TODO(), instance)

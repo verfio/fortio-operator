@@ -51,7 +51,7 @@ type LoadTestCondition struct {
 	RespTime  string `json:"avg"`
 	QPS       string `json:"qps"`
 	Code200   string `json:"code200"`
-	Code500   string `json:"code500"`
+	Codes500   string `json:"code500"`
 	Result    string `json:"result"`
 	Error     string `json:"error"`
 }

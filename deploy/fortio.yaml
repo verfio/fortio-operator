@@ -203,6 +203,21 @@ spec:
               value: "fortio-operator"
 ---
 apiVersion: v1
+kind: Service
+metadata:
+  name: fortio-metrics
+  labels:
+    app: fortio-metrics
+spec:
+  ports:
+  - name: http
+    port: 8082
+    targetPort: 8082
+  type: LoadBalancer
+  selector:
+    name: fortio-operator
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fortio-data-dir

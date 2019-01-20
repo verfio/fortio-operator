@@ -315,6 +315,12 @@ func writeConditionsFromLogs(instance *fortiov1alpha1.LoadTest, logs *string) {
 			instance.Status.Condition.Target999 = parsedLogs[i+1]
 		case "warmup)":
 			instance.Status.Condition.RespTime = parsedLogs[i+1] + parsedLogs[i+2]
+		case "Code":
+			if parsedLogs[i+1] == "200" {
+				instance.Status.Condition.Code200 = parsedLogs[i+3]
+			} else if parsedLogs[i+1] == "500" {
+				instance.Status.Condition.Code500 = parsedLogs[i+3]
+			}
 		}
 		if strings.Contains(word, "qps=") {
 			instance.Status.Condition.QPS = word[4:]
@@ -490,6 +496,33 @@ func writeResultToFile(instance *fortiov1alpha1.LoadTest, logs *string) error {
 			}
 		case "99.9%":
 			_, err = f.WriteString(str + instance.Status.Condition.Target999 + "\n")
+			if err != nil {
+				return err
+			}
+		}
+	}
+	codes := []string{"200", "500"}
+	var method string
+	if instance.Spec.Method == "POST" {
+		method = "POST"
+	} else {
+		method = "GET"
+	}
+	url := instance.Spec.URL
+	for _, c := range codes {
+		str := "http_requests_total{method=\"" + method + "\", endpoint=\"" + url + "\", status=\"" + c + "\"} "
+		switch c {
+		case "200":
+			_, err = f.WriteString(str + instance.Status.Condition.Code200 + "\n")
+			if err != nil {
+				return err
+			}
+		case "500":
+			if instance.Status.Condition.Code500 == "" {
+				_, err = f.WriteString(str + "0" + "\n")
+			} else {
+				_, err = f.WriteString(str + instance.Status.Condition.Code500 + "\n")
+			}
 			if err != nil {
 				return err
 			}

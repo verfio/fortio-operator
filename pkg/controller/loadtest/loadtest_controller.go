@@ -518,7 +518,7 @@ func writeResultToFile(instance *fortiov1alpha1.LoadTest, logs *string) error {
 				return err
 			}
 		case "500":
-			if instance.Status.Condition.Code500 == "" {
+			if instance.Status.Condition.Codes500 == "" {
 				_, err = f.WriteString(str + "0" + "\n")
 			} else {
 				_, err = f.WriteString(str + instance.Status.Condition.Codes500 + "\n")

@@ -1,6 +1,7 @@
 package testrun
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"sort"
@@ -154,13 +155,13 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	sort.Ints(order)
 
 	for _, o := range order {
-		spec := make(map[string]interface{})
-		err := json.Unmarshal(tests[o], &spec)
-		if err != nil {
-			reqLogger.Error(err, "Can't unmarshal spec into map")
-			break
-		}
-		if spec["action"] == "curl" {
+		if bytes.Contains(tests[o], []byte("\"action\":\"curl\"")) {
+			spec := &fortiov1alpha1.CurlTestSpec{}
+			err := json.Unmarshal(tests[o], spec)
+			if err != nil {
+				reqLogger.Error(err, "Can't unmarshal json into curl spec")
+				break
+			}
 			test := newCurlTestCR(instance, spec, o)
 			// Set TestRun instance as the owner and controller
 			if err := controllerutil.SetControllerReference(instance, test, r.scheme); err != nil {
@@ -209,7 +210,13 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 					break
 				}
 			}
-		} else if spec["action"] == "load" {
+		} else if bytes.Contains(tests[o], []byte("\"action\":\"load\"")) {
+			spec := &fortiov1alpha1.LoadTestSpec{}
+			err := json.Unmarshal(tests[o], spec)
+			if err != nil {
+				reqLogger.Error(err, "Can't unmarshal json into load spec")
+				break
+			}
 			test := newLoadTestCR(instance, spec, o)
 			// Set TestRun instance as the owner and controller
 			if err := controllerutil.SetControllerReference(instance, test, r.scheme); err != nil {
@@ -270,118 +277,33 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func newCurlTestCR(cr *fortiov1alpha1.TestRun, spec map[string]interface{}, order int) *fortiov1alpha1.CurlTest {
+func newCurlTestCR(cr *fortiov1alpha1.TestRun, spec *fortiov1alpha1.CurlTestSpec, order int) *fortiov1alpha1.CurlTest {
 	labels := map[string]string{
 		"app": cr.Name,
 	}
 	o := strconv.Itoa(order)
-	curlTestSpec := fortiov1alpha1.CurlTestSpec{}
-	if _, ok := spec["url"]; ok {
-		curlTestSpec.URL = spec["url"].(string)
-	}
-	if _, ok := spec["lookForString"]; ok {
-		curlTestSpec.LookForString = spec["lookForString"].(string)
-	}
-	if _, ok := spec["method"]; ok {
-		curlTestSpec.Method = spec["method"].(string)
-	}
-	if _, ok := spec["contentType"]; ok {
-		curlTestSpec.ContentType = spec["contentType"].(string)
-	}
-	if _, ok := spec["payload"]; ok {
-		curlTestSpec.Payload = spec["payload"].(string)
-	}
-	if _, ok := spec["payloadSize"]; ok {
-		curlTestSpec.PayloadSize = spec["payloadSize"].(string)
-	}
-	if _, ok := spec["maxPayloadSizeKB"]; ok {
-		curlTestSpec.MaxPayloadSizeKB = spec["maxPayloadSizeKB"].(string)
-	}
-	if _, ok := spec["payloadFile"]; ok {
-		curlTestSpec.Payload = spec["payloadFile"].(string)
-	}
-	if _, ok := spec["payloadConfigMap"]; ok {
-		curlTestSpec.Payload = spec["payloadConfigMap"].(string)
-	}
-	if _, ok := spec["logLevel"]; ok {
-		curlTestSpec.Payload = spec["logLevel"].(string)
-	}
-	if _, ok := spec["stopOnFailure"]; ok {
-		curlTestSpec.StopOnFailure = spec["stopOnFailure"].(string)
-	}
 	return &fortiov1alpha1.CurlTest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"].(string) + "-test",
+			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec.Action + "-test",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
-		Spec: curlTestSpec,
+		Spec: *spec,
 	}
 }
 
-func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]interface{}, order int) *fortiov1alpha1.LoadTest {
+func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec *fortiov1alpha1.LoadTestSpec, order int) *fortiov1alpha1.LoadTest {
 	labels := map[string]string{
 		"app": cr.Name,
 	}
 	o := strconv.Itoa(order)
-	loadTestSpec := fortiov1alpha1.LoadTestSpec{}
-	if _, ok := spec["url"]; ok {
-		loadTestSpec.URL = spec["url"].(string)
-	}
-	if _, ok := spec["duration"]; ok {
-		loadTestSpec.Duration = spec["duration"].(string)
-	}
-	if _, ok := spec["headers"]; ok {
-		for i := 0; i < len(spec["headers"].([]string)); i++ {
-			loadTestSpec.Headers[i] = spec["headers"].([]string)[i]
-		}
-	}
-	if _, ok := spec["user"]; ok {
-		loadTestSpec.User = spec["user"].(string)
-	}
-	if _, ok := spec["password"]; ok {
-		loadTestSpec.Password = spec["password"].(string)
-	}
-	if _, ok := spec["qps"]; ok {
-		loadTestSpec.QPS = spec["qps"].(string)
-	}
-	if _, ok := spec["threads"]; ok {
-		loadTestSpec.Threads = spec["threads"].(string)
-	}
-	if _, ok := spec["method"]; ok {
-		loadTestSpec.Method = spec["method"].(string)
-	}
-	if _, ok := spec["contentType"]; ok {
-		loadTestSpec.ContentType = spec["contentType"].(string)
-	}
-	if _, ok := spec["payload"]; ok {
-		loadTestSpec.Payload = spec["payload"].(string)
-	}
-	if _, ok := spec["payloadSize"]; ok {
-		loadTestSpec.PayloadSize = spec["payloadSize"].(string)
-	}
-	if _, ok := spec["maxPayloadSizeKB"]; ok {
-		loadTestSpec.MaxPayloadSizeKB = spec["maxPayloadSizeKB"].(string)
-	}
-	if _, ok := spec["payloadFile"]; ok {
-		loadTestSpec.Payload = spec["payloadFile"].(string)
-	}
-	if _, ok := spec["payloadConfigMap"]; ok {
-		loadTestSpec.Payload = spec["payloadConfigMap"].(string)
-	}
-	if _, ok := spec["logLevel"]; ok {
-		loadTestSpec.Payload = spec["logLevel"].(string)
-	}
-	if _, ok := spec["stopOnFailure"]; ok {
-		loadTestSpec.StopOnFailure = spec["stopOnFailure"].(string)
-	}
 	return &fortiov1alpha1.LoadTest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"].(string) + "-test",
+			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec.Action + "-test",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
-		Spec: loadTestSpec,
+		Spec: *spec,
 	}
 }
 

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
+
 	fortiov1alpha1 "github.com/verfio/fortio-operator/pkg/apis/fortio/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -198,6 +200,12 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 					break
 				} else if found.Status.Condition.Result == "Failure" {
 					reqLogger.Info("Test failed.", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
+					if strings.ToLower(found.Spec.StopOnFailure) == "true" {
+						reqLogger.Info("StopOnFailure set to true - stopping test run, finishing reconcile", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
+						instance.Status.Result = "Finished"
+						updateStatus(r, instance, log)
+						return reconcile.Result{}, nil
+					}
 					break
 				}
 			}
@@ -241,6 +249,12 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 					break
 				} else if found.Status.Condition.Result == "Failure" {
 					reqLogger.Info("Test failed.", "Test.Namespace", test.Namespace, "Test.Name", test.Name)
+					if strings.ToLower(found.Spec.StopOnFailure) == "true" {
+						reqLogger.Info("StopOnFailure set to true - stopping test run, finishing reconcile", "Test.Namespace", found.Namespace, "Test.Name", found.Name)
+						instance.Status.Result = "Finished"
+						updateStatus(r, instance, log)
+						return reconcile.Result{}, nil
+					}
 					break
 				}
 			}
@@ -251,18 +265,7 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 	// Finishing after all tests ran
 	instance.Status.Result = "Finished"
-	statusWriter := r.client.Status()
-	err = statusWriter.Update(context.TODO(), instance)
-	if err != nil {
-		err = r.client.Update(context.TODO(), instance)
-		if err != nil {
-			reqLogger.Error(err, "Failed to update instance", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-		} else {
-			reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-		}
-	} else {
-		reqLogger.Info("Successfully written results to status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
-	}
+	updateStatus(r, instance, log)
 	reqLogger.Info("Finished reconciling cycle", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 	return reconcile.Result{}, nil
 }
@@ -302,6 +305,9 @@ func newCurlTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 	}
 	if _, ok := spec["logLevel"]; ok {
 		curlTestSpec.Payload = spec["logLevel"]
+	}
+	if _, ok := spec["stopOnFailure"]; ok {
+		curlTestSpec.StopOnFailure = spec["stopOnFailure"]
 	}
 	return &fortiov1alpha1.CurlTest{
 		ObjectMeta: metav1.ObjectMeta{
@@ -364,6 +370,9 @@ func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 	if _, ok := spec["logLevel"]; ok {
 		loadTestSpec.Payload = spec["logLevel"]
 	}
+	if _, ok := spec["stopOnFailure"]; ok {
+		loadTestSpec.StopOnFailure = spec["stopOnFailure"]
+	}
 	return &fortiov1alpha1.LoadTest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      strings.ToLower(cr.TypeMeta.Kind) + "-" + cr.Name + "-" + o + "-" + spec["action"] + "-test",
@@ -371,5 +380,21 @@ func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 			Labels:    labels,
 		},
 		Spec: loadTestSpec,
+	}
+}
+
+func updateStatus(r *ReconcileTestRun, instance *fortiov1alpha1.TestRun, reqLogger logr.Logger) {
+	statusWriter := r.client.Status()
+	err := statusWriter.Update(context.TODO(), instance)
+	if err != nil {
+		reqLogger.Error(err, "Failed to update Status of the CR using statusWriter, switching back to old way", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		err = r.client.Update(context.TODO(), instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update Status of the CR using old way", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		} else {
+			reqLogger.Info("Successfully updated Status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
+		}
+	} else {
+		reqLogger.Info("Successfully updated Status of the CR", "instance.Namespace", instance.Namespace, "instance.Name", instance.Name)
 	}
 }

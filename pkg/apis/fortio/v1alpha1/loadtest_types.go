@@ -13,7 +13,7 @@ import (
 type LoadTestSpec struct {
 	URL              string   `json:"url"`
 	Duration         string   `json:"duration"`
-	Headers          []string `json:"header"`
+	Headers          []string `json:"headers"`
 	User             string   `json:"user"`
 	Password         string   `json:"password"`
 	QPS              string   `json:"qps"`

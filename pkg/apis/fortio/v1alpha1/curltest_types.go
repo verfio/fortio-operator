@@ -13,7 +13,7 @@ import (
 type CurlTestSpec struct {
 	URL              string   `json:"url"`
 	WaitForCode      string   `json:"waitForCode"` // not implemented yet
-	Headers          []string `json:"header"`
+	Headers          []string `json:"headers"`
 	LookForString    string   `json:"lookForString"`
 	Method           string   `json:"method"`
 	ContentType      string   `json:"contentType"`

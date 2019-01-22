@@ -120,16 +120,32 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	for _, c := range instance.Spec.CurlTests {
 		c.Action = "curl"
 		i, _ := strconv.Atoi(c.Order)
-		tests[i] = c.GetSpec()
-		order = append(order, i)
+		for true {
+			if _, ok := tests[i]; ok {
+				i++
+				continue
+			} else {
+				tests[i] = c.GetSpec()
+				order = append(order, i)
+				break
+			}
+		}
 	}
 
 	// Range all loadtests and get them into map
 	for _, l := range instance.Spec.LoadTests {
 		l.Action = "load"
 		i, _ := strconv.Atoi(l.Order)
-		tests[i] = l.GetSpec()
-		order = append(order, i)
+		for true {
+			if _, ok := tests[i]; ok {
+				i++
+				continue
+			} else {
+				tests[i] = l.GetSpec()
+				order = append(order, i)
+				break
+			}
+		}
 	}
 
 	// Sorting order in increasing order(ASC)

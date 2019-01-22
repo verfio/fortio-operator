@@ -157,7 +157,7 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	for _, o := range order {
 		spec := make(map[string]interface{})
 		reqLogger.Info(string(tests[o]))
-		if bytes.Contains(tests[o], []byte("action:curl")) {
+		if bytes.Contains(tests[o], []byte("\"action\":\"curl\"")) {
 			reqLogger.Info("true")
 		} else {
 			reqLogger.Info("false")

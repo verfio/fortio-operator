@@ -159,9 +159,6 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 		if err != nil {
 			reqLogger.Error(err, "Can't unmarshal spec into map")
 			break
-		} else {
-			reqLogger.Info("Successfully unmarshalled spec into map")
-			break
 		}
 		if spec["action"] == "curl" {
 			test := newCurlTestCR(instance, spec, o)

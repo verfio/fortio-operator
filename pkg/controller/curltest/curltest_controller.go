@@ -291,6 +291,11 @@ func newJobForCR(cr *fortiov1alpha1.CurlTest) *batchv1.Job {
 	} else if strings.ToLower(cr.Spec.Method) == "post" {
 		command = append(command, "-content-type", "text/html")
 	}
+	if cr.Spec.Headers != nil {
+		for i := 0; i < len(cr.Spec.Headers); i++ {
+			command = append(command, "-H", cr.Spec.Headers[i])
+		}
+	}
 	if cr.Spec.Payload != "" {
 		command = append(command, "-payload", cr.Spec.Payload)
 	}

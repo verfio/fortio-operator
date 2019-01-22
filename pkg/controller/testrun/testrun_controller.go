@@ -159,6 +159,9 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 		if err != nil {
 			reqLogger.Error(err, "Can't unmarshal spec into map")
 			break
+		} else {
+			reqLogger.Info("Successfully unmarshalled spec into map")
+			break
 		}
 		if spec["action"] == "curl" {
 			test := newCurlTestCR(instance, spec, o)
@@ -331,9 +334,9 @@ func newLoadTestCR(cr *fortiov1alpha1.TestRun, spec map[string]string, order int
 	if _, ok := spec["duration"]; ok {
 		loadTestSpec.Duration = spec["duration"]
 	}
-	if _, ok := spec["header"]; ok {
-		loadTestSpec.Header = spec["header"]
-	}
+	// if _, ok := spec["header"]; ok {
+	// 	loadTestSpec.Header = spec["header"]
+	// }
 	if _, ok := spec["user"]; ok {
 		loadTestSpec.User = spec["user"]
 	}

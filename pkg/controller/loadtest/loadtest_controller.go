@@ -357,8 +357,10 @@ func newJobForCR(cr *fortiov1alpha1.LoadTest) *batchv1.Job {
 	if cr.Spec.Duration != "" {
 		command = append(command, "-t", cr.Spec.Duration)
 	}
-	if cr.Spec.Header != "" {
-		command = append(command, "-H", cr.Spec.Header)
+	if cr.Spec.Headers != nil {
+		for i := 0; i < len(cr.Spec.Headers); i++ {
+			command = append(command, "-H", cr.Spec.Headers[i])
+		}
 	}
 	if cr.Spec.User != "" {
 		command = append(command, "-user", cr.Spec.User+":"+cr.Spec.Password)

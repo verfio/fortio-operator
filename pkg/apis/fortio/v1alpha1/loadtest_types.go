@@ -11,21 +11,21 @@ import (
 
 // LoadTestSpec defines the desired state of LoadTest
 type LoadTestSpec struct {
-	URL              string `json:"url"`
-	Duration         string `json:"duration"`
-	Header           string `json:"header"`
-	User             string `json:"user"`
-	Password         string `json:"password"`
-	QPS              string `json:"qps"`
-	Threads          string `json:"threads"`
-	Method           string `json:"method"`
-	ContentType      string `json:"contentType"`
-	Payload          string `json:"payload"`
-	PayloadSize      string `json:"payloadSize"`
-	MaxPayloadSizeKB string `json:"maxPayloadSizeKB"`
-	PayloadFile      string `json:"payloadFile"`
-	PayloadConfigMap string `json:"payloadConfigMap"`
-	LogLevel         string `json:"logLevel"`
+	URL              string   `json:"url"`
+	Duration         string   `json:"duration"`
+	Headers          []string `json:"header"`
+	User             string   `json:"user"`
+	Password         string   `json:"password"`
+	QPS              string   `json:"qps"`
+	Threads          string   `json:"threads"`
+	Method           string   `json:"method"`
+	ContentType      string   `json:"contentType"`
+	Payload          string   `json:"payload"`
+	PayloadSize      string   `json:"payloadSize"`
+	MaxPayloadSizeKB string   `json:"maxPayloadSizeKB"`
+	PayloadFile      string   `json:"payloadFile"`
+	PayloadConfigMap string   `json:"payloadConfigMap"`
+	LogLevel         string   `json:"logLevel"`
 	// parameters for TestRun
 	Action        string `json:"action"`
 	Order         string `json:"order"`
@@ -50,8 +50,8 @@ type LoadTestCondition struct {
 	Target999 string `json:"99.9%"`
 	RespTime  string `json:"avg"`
 	QPS       string `json:"qps"`
-	Codes200   string `json:"code200"`
-	Codes500   string `json:"code500"`
+	Codes200  string `json:"code200"`
+	Codes500  string `json:"code500"`
 	Result    string `json:"result"`
 	Error     string `json:"error"`
 }

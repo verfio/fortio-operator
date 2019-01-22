@@ -29,7 +29,7 @@ type LoadTestSpec struct {
 	// parameters for TestRun
 	Action        string `json:"action"`
 	Order         string `json:"order"`
-	StopOnFailure string `json:"stopOnFailure"` // not implemented yet
+	StopOnFailure string `json:"stopOnFailure"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 }

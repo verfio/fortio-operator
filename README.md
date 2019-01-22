@@ -51,6 +51,7 @@ Please define all values in yaml files as string even if allowed value is int(e.
 Field name       | Mandatory? | Allowed values  | Description
 ----------       | ---------- | ----------------| ----------------
 url              | Yes        | URL             | URL of the site you want to test
+headers          | No         | []string        | Headers
 lookForString    | Yes        | string          | Should be without spaces
 method           | No         | POST            | Set this to POST to switch from GET, any other value will be ignored
 contentType      | No         | string          | Sets http content type
@@ -123,6 +124,7 @@ Please define all values in yaml files as string even if allowed value is int(e.
 Field name       | Mandatory? | Allowed values  | Description
 ----------       | ---------- | ----------------| ----------------
 url              | Yes        | URL             | URL of the site you want to test
+headers          | No         | []string        | Headers
 duration         | Yes        | duration        | How long to run the test or 0 to run until ^C (default 5s)
 header           | Yes        | string          | Additional header(s). Only one header is allowed right now
 user             | Yes        | string          | User credentials for basic authentication (for http)
@@ -243,13 +245,16 @@ spec:
   curl:
   - order: "10"
     url: "https://verf.io"
+    stopOnFailure: "true"
   - order: "15"
     url: "https://verf.io"
     method: "POST"
+    stopOnFailure: "true"
   load:
   - order: "20"
     url: "https://verf.io"
     duration: 10s
+    stopOnFailure: "true"
   - order: "30"
     url: "https://www.verf.io"
     duration: 30s

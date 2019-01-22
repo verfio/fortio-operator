@@ -156,6 +156,11 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	for _, o := range order {
 		spec := make(map[string]interface{})
 		reqLogger.Info(string(tests[o]))
+		if strings.Contains(string(tests[o]), "action:curl") {
+			reqLogger.Info("true")
+		} else {
+			reqLogger.Info("false")
+		}
 		err := json.Unmarshal(tests[o], &spec)
 		if err != nil {
 			reqLogger.Error(err, "Can't unmarshal spec into map")

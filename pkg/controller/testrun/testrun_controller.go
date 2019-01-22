@@ -1,6 +1,7 @@
 package testrun
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"sort"
@@ -156,7 +157,7 @@ func (r *ReconcileTestRun) Reconcile(request reconcile.Request) (reconcile.Resul
 	for _, o := range order {
 		spec := make(map[string]interface{})
 		reqLogger.Info(string(tests[o]))
-		if strings.Contains(string(tests[o]), "action:curl") {
+		if bytes.Contains(tests[o], []byte("action:curl")) {
 			reqLogger.Info("true")
 		} else {
 			reqLogger.Info("false")

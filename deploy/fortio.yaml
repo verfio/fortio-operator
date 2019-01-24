@@ -44,7 +44,9 @@ spec:
           properties:
             type:
               type: string
-              pattern: '(LoadBalancer|NodePort)'
+              enum: 
+                - "LoadBalancer"
+                - "NodePort"
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -89,7 +91,9 @@ spec:
               pattern: '\d+'
             method:
               type: string
-              enum: GET,POST
+              enum: 
+                - "GET"
+                - "POST"
             contentType:
               type: string
               pattern: '(.+):(.+)'
@@ -107,13 +111,22 @@ spec:
               type: string
             loglevel:
               type: string
-              pattern: '(Debug|Verbose|Info|Warning|Error|Critical|Fatal)'
+              enum: 
+                - "Debug"
+                - "Verbose"
+                - "Info"
+                - "Warning"
+                - "Error"
+                - "Critical"
+                - "Fatal"
             order:
               type: string
               pattern: '\d+'
             stopOnFailure:
               type: string
-              pattern: '(true|false)'
+              enum: 
+                - "true"
+                - "false"
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -147,7 +160,9 @@ spec:
                 type: string
             method:
               type: string
-              pattern: '(GET|POST)'
+              enum: 
+                - "GET"
+                - "POST"
             contentType:
               type: string
               pattern: '(.+):(.+)'
@@ -165,13 +180,22 @@ spec:
               type: string
             loglevel:
               type: string
-              pattern: '(Debug|Verbose|Info|Warning|Error|Critical|Fatal)'
+              enum: 
+                - "Debug"
+                - "Verbose"
+                - "Info"
+                - "Warning"
+                - "Error"
+                - "Critical"
+                - "Fatal"
             order:
               type: string
               pattern: '\d+'
             stopOnFailure:
               type: string
-              pattern: '(true|false)'
+              enum: 
+                - "true"
+                - "false"
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition

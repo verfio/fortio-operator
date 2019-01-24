@@ -13,6 +13,14 @@ spec:
   version: v1alpha1
   subresources:
     status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          properties:
+            schedule:
+              type: string
+              pattern: '^(\d+|\*)(/\d+)?(\s+(\d+|\*)(/\d+)?){4}$'
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -81,7 +89,7 @@ spec:
               pattern: '\d+'
             method:
               type: string
-              pattern: '(GET|POST)'
+              enum: GET,POST
             contentType:
               type: string
               pattern: '(.+):(.+)'

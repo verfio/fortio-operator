@@ -51,7 +51,7 @@ kind: CustomResourceDefinition
 metadata:
   name: curltests.fortio.verf.io
 spec:
-    group: fortio.verf.io
+  group: fortio.verf.io
   names:
     kind: CurlTest
     listKind: CurlTestList

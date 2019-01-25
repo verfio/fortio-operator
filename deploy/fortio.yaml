@@ -86,9 +86,9 @@ spec:
               enum: 
                 - "GET"
                 - "POST"
-            contentType:
-              type: string
-              pattern: '(.+):(.+)'
+            # contentType:
+            #   type: string
+            #   pattern: '(.+):(.+)'
             payload:
               type: string
             payloadSize:
@@ -155,9 +155,9 @@ spec:
               enum: 
                 - "GET"
                 - "POST"
-            contentType:
-              type: string
-              pattern: '(.+):(.+)'
+            # contentType:
+            #   type: string
+            #   pattern: '(.+):(.+)'
             payload:
               type: string
             payloadSize:
